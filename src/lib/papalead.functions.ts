@@ -2,11 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireApprovedAccount as requireSupabaseAuth } from "@/lib/access.middleware";
 import { evoGet } from "@/lib/evolution.server";
 
-const prefixFor = (userId: string) => `br${userId.replace(/-/g, "").slice(0, 10)}-`;
-function own(userId: string, name: string) {
-  if (!name.startsWith(prefixFor(userId))) throw new Error("Conexão não pertence a esta conta.");
-  return encodeURIComponent(name);
-}
+import { ownInstance } from "@/lib/wa-owner";
 
 export type PlGroup = { id: string; name: string; size: number };
 export type PlMember = { phone: string; name: string; admin: boolean };
@@ -15,7 +11,7 @@ export const plGroups = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instance: string }) => d)
   .handler(async ({ data, context }): Promise<PlGroup[]> => {
-    const r = await evoGet(`/group/fetchAllGroups/${own(context.userId, data.instance)}?getParticipants=false`);
+    const r = await evoGet(`/group/fetchAllGroups/${await ownInstance(context, data.instance)}?getParticipants=false`);
     const arr = Array.isArray(r) ? (r as Array<Record<string, unknown>>) : [];
     return arr.map((g) => ({ id: String(g["id"] ?? ""), name: String(g["subject"] ?? "Sem nome"), size: Number(g["size"] ?? 0) }))
       .filter((g) => g.id).sort((a, b) => a.name.localeCompare(b.name));
@@ -25,7 +21,7 @@ export const plGroupMembers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instance: string; groupId: string }) => d)
   .handler(async ({ data, context }) => {
-    const inst = own(context.userId, data.instance);
+    const inst = await ownInstance(context, data.instance);
     const r = (await evoGet(`/group/participants/${inst}?groupJid=${encodeURIComponent(data.groupId)}`)) as Record<string, unknown> | null;
     const parts = (Array.isArray(r?.["participants"]) ? r!["participants"] : []) as Array<Record<string, unknown>>;
     let ownNumber = "";

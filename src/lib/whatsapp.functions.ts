@@ -2,8 +2,7 @@ import { normalizeBR } from "@/lib/phone";
 import { createServerFn } from "@tanstack/react-start";
 import { requireApprovedAccount as requireSupabaseAuth } from "@/lib/access.middleware";
 
-// Each account owns Evolution instances prefixed with its id, so numbers never cross accounts.
-const prefixFor = (userId: string) => `br${userId.replace(/-/g, "").slice(0, 10)}`;
+import { prefixFor, ownInstance, isAdmin, canUse } from "@/lib/wa-owner";
 
 async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
   const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
@@ -32,10 +31,6 @@ async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
   return body as Record<string, unknown>;
 }
 
-function own(userId: string, name: string) {
-  if (!name.startsWith(prefixFor(userId) + "-")) throw new Error("Conexão não pertence a esta conta.");
-  return encodeURIComponent(name);
-}
 
 export type WaInstance = { name: string; label: string; status: string; number: string | null; profile: string | null };
 
@@ -43,17 +38,19 @@ export const waList = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<WaInstance[]> => {
     const p = prefixFor(context.userId) + "-";
+    const admin = await isAdmin(context);
+    const mine = (n: string) => canUse(context.userId, admin, n);
     const list = (await evo("/instance/fetchInstances", {}, 25000)) as unknown as Array<Record<string, unknown>>;
     const { data: st } = await context.supabase.from("user_settings").select("wa_labels").maybeSingle();
     const labels = (st?.wa_labels ?? {}) as Record<string, string>;
     // garante o aviso de respostas em todas as conexões (interrompe o funil quando o cliente responde)
     const { registerInbound } = await import("@/lib/wa-inbound.server");
-    await Promise.all((Array.isArray(list) ? list : []).filter((i) => String(i["name"] ?? "").startsWith(p)).map((i) => registerInbound(String(i["name"])).catch(() => false)));
+    await Promise.all((Array.isArray(list) ? list : []).filter((i) => mine(String(i["name"] ?? ""))).map((i) => registerInbound(String(i["name"])).catch(() => false)));
     return (Array.isArray(list) ? list : [])
-      .filter((i) => String(i["name"] ?? "").startsWith(p))
+      .filter((i) => mine(String(i["name"] ?? "")))
       .map((i) => ({
         name: String(i["name"]),
-        label: labels[String(i["name"])] || String(i["name"]).slice(p.length),
+        label: labels[String(i["name"])] || (String(i["name"]).startsWith(p) ? String(i["name"]).slice(p.length) : String(i["name"])),
         status: String(i["connectionStatus"] ?? "close"),
         number: i["ownerJid"] ? String(i["ownerJid"]).split("@")[0] ?? null : null,
         profile: i["profileName"] ? String(i["profileName"]) : null,
@@ -83,7 +80,7 @@ export const waQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string }) => d)
   .handler(async ({ data, context }) => {
-    const r = await evo(`/instance/connect/${own(context.userId, data.name)}`);
+    const r = await evo(`/instance/connect/${await ownInstance(context, data.name)}`);
     return { base64: typeof r["base64"] === "string" ? r["base64"] : null, pairingCode: typeof r["pairingCode"] === "string" ? r["pairingCode"] : null };
   });
 
@@ -91,7 +88,7 @@ export const waState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string }) => d)
   .handler(async ({ data, context }) => {
-    const r = await evo(`/instance/connectionState/${own(context.userId, data.name)}`, {}, 20000);
+    const r = await evo(`/instance/connectionState/${await ownInstance(context, data.name)}`, {}, 20000);
     const inst = (r["instance"] ?? {}) as Record<string, unknown>;
     return { state: String(inst["state"] ?? "close") };
   });
@@ -100,7 +97,7 @@ export const waRemove = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string }) => d)
   .handler(async ({ data, context }) => {
-    const n = own(context.userId, data.name);
+    const n = await ownInstance(context, data.name);
     try { await evo(`/instance/logout/${n}`, { method: "DELETE" }); } catch { /* already logged out */ }
     await evo(`/instance/delete/${n}`, { method: "DELETE" });
     return { ok: true };
@@ -110,7 +107,7 @@ export const waSend = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string; phone: string; texts: string[] }) => d)
   .handler(async ({ data, context }) => {
-    const n = own(context.userId, data.name);
+    const n = await ownInstance(context, data.name);
     const number = normalizeBR(data.phone);
     if (!number) throw new Error("Telefone inválido.");
     const texts = data.texts.map((t) => t.trim()).filter(Boolean);
@@ -127,7 +124,7 @@ export const waTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string; phone: string; texts: string[]; gapS: number }) => d)
   .handler(async ({ data, context }) => {
-    const n = own(context.userId, data.name);
+    const n = await ownInstance(context, data.name);
     const number = normalizeBR(data.phone);
     if (!number) throw new Error("Telefone de teste inválido.");
     const texts = data.texts.map((t) => t.trim()).filter(Boolean).slice(0, 3);
