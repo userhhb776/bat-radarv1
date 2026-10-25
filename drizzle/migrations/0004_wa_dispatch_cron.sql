@@ -1,0 +1,2 @@
+-- lovable-cron-fallback-reviewed: user schedules WhatsApp sends for a specific day/time; Evolution API has no delayed-send primitive, so a 5-minute check is the minimum that keeps send time accurate.
+SELECT cron.schedule('wa-dispatch-5min', '*/5 * * * *', replace((SELECT command FROM cron.job WHERE jobname = 'inactivity-reminder-hourly'), 'inactivity-reminder', 'wa-dispatch'));

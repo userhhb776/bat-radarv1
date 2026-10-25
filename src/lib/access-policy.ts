@@ -1,0 +1,2 @@
+export function canUsePanel(status: string | null | undefined) { return status === "approved"; }
+export function canManageAccess(admin: boolean, status: string | null | undefined) { return admin && canUsePanel(status); }
