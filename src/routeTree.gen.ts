@@ -10,33 +10,397 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAcessRouteImport } from './routes/_authenticated/acess'
+import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
+import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
+import { Route as AuthenticatedBlocosRouteImport } from './routes/_authenticated/blocos'
+import { Route as AuthenticatedBuscarRouteImport } from './routes/_authenticated/buscar'
+import { Route as AuthenticatedCampanhasRouteImport } from './routes/_authenticated/campanhas'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedCompararRouteImport } from './routes/_authenticated/comparar'
+import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticated/cotacoes'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
+import { Route as AuthenticatedDiariosRouteImport } from './routes/_authenticated/diarios'
+import { Route as AuthenticatedExternosRouteImport } from './routes/_authenticated/externos'
+import { Route as AuthenticatedJarvisRouteImport } from './routes/_authenticated/jarvis'
+import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
+import { Route as AuthenticatedPapaLeadRouteImport } from './routes/_authenticated/papa-lead'
+import { Route as AuthenticatedPapaLeadCampanhasRouteImport } from './routes/_authenticated/papa-lead-campanhas'
+import { Route as AuthenticatedPapaLeadMensagensRouteImport } from './routes/_authenticated/papa-lead-mensagens'
+import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
+import { Route as AuthenticatedScriptsRouteImport } from './routes/_authenticated/scripts'
+import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
+import { Route as ApiPublicJarvisRouteImport } from './routes/api/public/jarvis'
+import { Route as ApiPublicHooksAccessRequestRouteImport } from './routes/api/public/hooks/access-request'
+import { Route as ApiPublicHooksDailyMiningRouteImport } from './routes/api/public/hooks/daily-mining'
+import { Route as ApiPublicHooksInactivityReminderRouteImport } from './routes/api/public/hooks/inactivity-reminder'
+import { Route as ApiPublicHooksWaDispatchRouteImport } from './routes/api/public/hooks/wa-dispatch'
+import { Route as ApiPublicHooksWaInboundRouteImport } from './routes/api/public/hooks/wa-inbound'
+import { Route as ApiPublicPushLatestRouteImport } from './routes/api/public/push/latest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAcessRoute = AuthenticatedAcessRouteImport.update({
+  id: '/acess',
+  path: '/acess',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgendamentosRoute =
+  AuthenticatedAgendamentosRouteImport.update({
+    id: '/agendamentos',
+    path: '/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAprendizadoRoute =
+  AuthenticatedAprendizadoRouteImport.update({
+    id: '/aprendizado',
+    path: '/aprendizado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBlocosRoute = AuthenticatedBlocosRouteImport.update({
+  id: '/blocos',
+  path: '/blocos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBuscarRoute = AuthenticatedBuscarRouteImport.update({
+  id: '/buscar',
+  path: '/buscar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCampanhasRoute = AuthenticatedCampanhasRouteImport.update({
+  id: '/campanhas',
+  path: '/campanhas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCompararRoute = AuthenticatedCompararRouteImport.update({
+  id: '/comparar',
+  path: '/comparar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCotacoesRoute = AuthenticatedCotacoesRouteImport.update({
+  id: '/cotacoes',
+  path: '/cotacoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDiariosRoute = AuthenticatedDiariosRouteImport.update({
+  id: '/diarios',
+  path: '/diarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedExternosRoute = AuthenticatedExternosRouteImport.update({
+  id: '/externos',
+  path: '/externos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedJarvisRoute = AuthenticatedJarvisRouteImport.update({
+  id: '/jarvis',
+  path: '/jarvis',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
+  id: '/manual',
+  path: '/manual',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPapaLeadRoute = AuthenticatedPapaLeadRouteImport.update({
+  id: '/papa-lead',
+  path: '/papa-lead',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPapaLeadCampanhasRoute =
+  AuthenticatedPapaLeadCampanhasRouteImport.update({
+    id: '/papa-lead-campanhas',
+    path: '/papa-lead-campanhas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPapaLeadMensagensRoute =
+  AuthenticatedPapaLeadMensagensRouteImport.update({
+    id: '/papa-lead-mensagens',
+    path: '/papa-lead-mensagens',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScriptsRoute = AuthenticatedScriptsRouteImport.update({
+  id: '/scripts',
+  path: '/scripts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicJarvisRoute = ApiPublicJarvisRouteImport.update({
+  id: '/api/public/jarvis',
+  path: '/api/public/jarvis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksAccessRequestRoute =
+  ApiPublicHooksAccessRequestRouteImport.update({
+    id: '/api/public/hooks/access-request',
+    path: '/api/public/hooks/access-request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksDailyMiningRoute =
+  ApiPublicHooksDailyMiningRouteImport.update({
+    id: '/api/public/hooks/daily-mining',
+    path: '/api/public/hooks/daily-mining',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksInactivityReminderRoute =
+  ApiPublicHooksInactivityReminderRouteImport.update({
+    id: '/api/public/hooks/inactivity-reminder',
+    path: '/api/public/hooks/inactivity-reminder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksWaDispatchRoute =
+  ApiPublicHooksWaDispatchRouteImport.update({
+    id: '/api/public/hooks/wa-dispatch',
+    path: '/api/public/hooks/wa-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksWaInboundRoute = ApiPublicHooksWaInboundRouteImport.update({
+  id: '/api/public/hooks/wa-inbound',
+  path: '/api/public/hooks/wa-inbound',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPushLatestRoute = ApiPublicPushLatestRouteImport.update({
+  id: '/api/public/push/latest',
+  path: '/api/public/push/latest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/acess': typeof AuthenticatedAcessRoute
+  '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/blocos': typeof AuthenticatedBlocosRoute
+  '/buscar': typeof AuthenticatedBuscarRoute
+  '/campanhas': typeof AuthenticatedCampanhasRoute
+  '/clientes': typeof AuthenticatedClientesRoute
+  '/comparar': typeof AuthenticatedCompararRoute
+  '/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/diarios': typeof AuthenticatedDiariosRoute
+  '/externos': typeof AuthenticatedExternosRoute
+  '/jarvis': typeof AuthenticatedJarvisRoute
+  '/manual': typeof AuthenticatedManualRoute
+  '/papa-lead': typeof AuthenticatedPapaLeadRoute
+  '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
+  '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
+  '/pipeline': typeof AuthenticatedPipelineRoute
+  '/scripts': typeof AuthenticatedScriptsRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/api/public/jarvis': typeof ApiPublicJarvisRoute
+  '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
+  '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
+  '/api/public/hooks/inactivity-reminder': typeof ApiPublicHooksInactivityReminderRoute
+  '/api/public/hooks/wa-dispatch': typeof ApiPublicHooksWaDispatchRoute
+  '/api/public/hooks/wa-inbound': typeof ApiPublicHooksWaInboundRoute
+  '/api/public/push/latest': typeof ApiPublicPushLatestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/acess': typeof AuthenticatedAcessRoute
+  '/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/blocos': typeof AuthenticatedBlocosRoute
+  '/buscar': typeof AuthenticatedBuscarRoute
+  '/campanhas': typeof AuthenticatedCampanhasRoute
+  '/clientes': typeof AuthenticatedClientesRoute
+  '/comparar': typeof AuthenticatedCompararRoute
+  '/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/crm': typeof AuthenticatedCrmRoute
+  '/diarios': typeof AuthenticatedDiariosRoute
+  '/externos': typeof AuthenticatedExternosRoute
+  '/jarvis': typeof AuthenticatedJarvisRoute
+  '/manual': typeof AuthenticatedManualRoute
+  '/papa-lead': typeof AuthenticatedPapaLeadRoute
+  '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
+  '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
+  '/pipeline': typeof AuthenticatedPipelineRoute
+  '/scripts': typeof AuthenticatedScriptsRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/api/public/jarvis': typeof ApiPublicJarvisRoute
+  '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
+  '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
+  '/api/public/hooks/inactivity-reminder': typeof ApiPublicHooksInactivityReminderRoute
+  '/api/public/hooks/wa-dispatch': typeof ApiPublicHooksWaDispatchRoute
+  '/api/public/hooks/wa-inbound': typeof ApiPublicHooksWaInboundRoute
+  '/api/public/push/latest': typeof ApiPublicPushLatestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/acess': typeof AuthenticatedAcessRoute
+  '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
+  '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/_authenticated/blocos': typeof AuthenticatedBlocosRoute
+  '/_authenticated/buscar': typeof AuthenticatedBuscarRoute
+  '/_authenticated/campanhas': typeof AuthenticatedCampanhasRoute
+  '/_authenticated/clientes': typeof AuthenticatedClientesRoute
+  '/_authenticated/comparar': typeof AuthenticatedCompararRoute
+  '/_authenticated/cotacoes': typeof AuthenticatedCotacoesRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRoute
+  '/_authenticated/diarios': typeof AuthenticatedDiariosRoute
+  '/_authenticated/externos': typeof AuthenticatedExternosRoute
+  '/_authenticated/jarvis': typeof AuthenticatedJarvisRoute
+  '/_authenticated/manual': typeof AuthenticatedManualRoute
+  '/_authenticated/papa-lead': typeof AuthenticatedPapaLeadRoute
+  '/_authenticated/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
+  '/_authenticated/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
+  '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
+  '/_authenticated/scripts': typeof AuthenticatedScriptsRoute
+  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/api/public/jarvis': typeof ApiPublicJarvisRoute
+  '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
+  '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
+  '/api/public/hooks/inactivity-reminder': typeof ApiPublicHooksInactivityReminderRoute
+  '/api/public/hooks/wa-dispatch': typeof ApiPublicHooksWaDispatchRoute
+  '/api/public/hooks/wa-inbound': typeof ApiPublicHooksWaInboundRoute
+  '/api/public/push/latest': typeof ApiPublicPushLatestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/acess'
+    | '/agendamentos'
+    | '/aprendizado'
+    | '/blocos'
+    | '/buscar'
+    | '/campanhas'
+    | '/clientes'
+    | '/comparar'
+    | '/cotacoes'
+    | '/crm'
+    | '/diarios'
+    | '/externos'
+    | '/jarvis'
+    | '/manual'
+    | '/papa-lead'
+    | '/papa-lead-campanhas'
+    | '/papa-lead-mensagens'
+    | '/pipeline'
+    | '/scripts'
+    | '/whatsapp'
+    | '/api/public/jarvis'
+    | '/api/public/hooks/access-request'
+    | '/api/public/hooks/daily-mining'
+    | '/api/public/hooks/inactivity-reminder'
+    | '/api/public/hooks/wa-dispatch'
+    | '/api/public/hooks/wa-inbound'
+    | '/api/public/push/latest'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/acess'
+    | '/agendamentos'
+    | '/aprendizado'
+    | '/blocos'
+    | '/buscar'
+    | '/campanhas'
+    | '/clientes'
+    | '/comparar'
+    | '/cotacoes'
+    | '/crm'
+    | '/diarios'
+    | '/externos'
+    | '/jarvis'
+    | '/manual'
+    | '/papa-lead'
+    | '/papa-lead-campanhas'
+    | '/papa-lead-mensagens'
+    | '/pipeline'
+    | '/scripts'
+    | '/whatsapp'
+    | '/api/public/jarvis'
+    | '/api/public/hooks/access-request'
+    | '/api/public/hooks/daily-mining'
+    | '/api/public/hooks/inactivity-reminder'
+    | '/api/public/hooks/wa-dispatch'
+    | '/api/public/hooks/wa-inbound'
+    | '/api/public/push/latest'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/acess'
+    | '/_authenticated/agendamentos'
+    | '/_authenticated/aprendizado'
+    | '/_authenticated/blocos'
+    | '/_authenticated/buscar'
+    | '/_authenticated/campanhas'
+    | '/_authenticated/clientes'
+    | '/_authenticated/comparar'
+    | '/_authenticated/cotacoes'
+    | '/_authenticated/crm'
+    | '/_authenticated/diarios'
+    | '/_authenticated/externos'
+    | '/_authenticated/jarvis'
+    | '/_authenticated/manual'
+    | '/_authenticated/papa-lead'
+    | '/_authenticated/papa-lead-campanhas'
+    | '/_authenticated/papa-lead-mensagens'
+    | '/_authenticated/pipeline'
+    | '/_authenticated/scripts'
+    | '/_authenticated/whatsapp'
+    | '/api/public/jarvis'
+    | '/api/public/hooks/access-request'
+    | '/api/public/hooks/daily-mining'
+    | '/api/public/hooks/inactivity-reminder'
+    | '/api/public/hooks/wa-dispatch'
+    | '/api/public/hooks/wa-inbound'
+    | '/api/public/push/latest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ApiPublicJarvisRoute: typeof ApiPublicJarvisRoute
+  ApiPublicHooksAccessRequestRoute: typeof ApiPublicHooksAccessRequestRoute
+  ApiPublicHooksDailyMiningRoute: typeof ApiPublicHooksDailyMiningRoute
+  ApiPublicHooksInactivityReminderRoute: typeof ApiPublicHooksInactivityReminderRoute
+  ApiPublicHooksWaDispatchRoute: typeof ApiPublicHooksWaDispatchRoute
+  ApiPublicHooksWaInboundRoute: typeof ApiPublicHooksWaInboundRoute
+  ApiPublicPushLatestRoute: typeof ApiPublicPushLatestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +412,272 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/acess': {
+      id: '/_authenticated/acess'
+      path: '/acess'
+      fullPath: '/acess'
+      preLoaderRoute: typeof AuthenticatedAcessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agendamentos': {
+      id: '/_authenticated/agendamentos'
+      path: '/agendamentos'
+      fullPath: '/agendamentos'
+      preLoaderRoute: typeof AuthenticatedAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/aprendizado': {
+      id: '/_authenticated/aprendizado'
+      path: '/aprendizado'
+      fullPath: '/aprendizado'
+      preLoaderRoute: typeof AuthenticatedAprendizadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/blocos': {
+      id: '/_authenticated/blocos'
+      path: '/blocos'
+      fullPath: '/blocos'
+      preLoaderRoute: typeof AuthenticatedBlocosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/buscar': {
+      id: '/_authenticated/buscar'
+      path: '/buscar'
+      fullPath: '/buscar'
+      preLoaderRoute: typeof AuthenticatedBuscarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/campanhas': {
+      id: '/_authenticated/campanhas'
+      path: '/campanhas'
+      fullPath: '/campanhas'
+      preLoaderRoute: typeof AuthenticatedCampanhasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes': {
+      id: '/_authenticated/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AuthenticatedClientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/comparar': {
+      id: '/_authenticated/comparar'
+      path: '/comparar'
+      fullPath: '/comparar'
+      preLoaderRoute: typeof AuthenticatedCompararRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cotacoes': {
+      id: '/_authenticated/cotacoes'
+      path: '/cotacoes'
+      fullPath: '/cotacoes'
+      preLoaderRoute: typeof AuthenticatedCotacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/diarios': {
+      id: '/_authenticated/diarios'
+      path: '/diarios'
+      fullPath: '/diarios'
+      preLoaderRoute: typeof AuthenticatedDiariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/externos': {
+      id: '/_authenticated/externos'
+      path: '/externos'
+      fullPath: '/externos'
+      preLoaderRoute: typeof AuthenticatedExternosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/jarvis': {
+      id: '/_authenticated/jarvis'
+      path: '/jarvis'
+      fullPath: '/jarvis'
+      preLoaderRoute: typeof AuthenticatedJarvisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/manual': {
+      id: '/_authenticated/manual'
+      path: '/manual'
+      fullPath: '/manual'
+      preLoaderRoute: typeof AuthenticatedManualRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/papa-lead': {
+      id: '/_authenticated/papa-lead'
+      path: '/papa-lead'
+      fullPath: '/papa-lead'
+      preLoaderRoute: typeof AuthenticatedPapaLeadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/papa-lead-campanhas': {
+      id: '/_authenticated/papa-lead-campanhas'
+      path: '/papa-lead-campanhas'
+      fullPath: '/papa-lead-campanhas'
+      preLoaderRoute: typeof AuthenticatedPapaLeadCampanhasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/papa-lead-mensagens': {
+      id: '/_authenticated/papa-lead-mensagens'
+      path: '/papa-lead-mensagens'
+      fullPath: '/papa-lead-mensagens'
+      preLoaderRoute: typeof AuthenticatedPapaLeadMensagensRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pipeline': {
+      id: '/_authenticated/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AuthenticatedPipelineRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/scripts': {
+      id: '/_authenticated/scripts'
+      path: '/scripts'
+      fullPath: '/scripts'
+      preLoaderRoute: typeof AuthenticatedScriptsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/whatsapp': {
+      id: '/_authenticated/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/jarvis': {
+      id: '/api/public/jarvis'
+      path: '/api/public/jarvis'
+      fullPath: '/api/public/jarvis'
+      preLoaderRoute: typeof ApiPublicJarvisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/access-request': {
+      id: '/api/public/hooks/access-request'
+      path: '/api/public/hooks/access-request'
+      fullPath: '/api/public/hooks/access-request'
+      preLoaderRoute: typeof ApiPublicHooksAccessRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/daily-mining': {
+      id: '/api/public/hooks/daily-mining'
+      path: '/api/public/hooks/daily-mining'
+      fullPath: '/api/public/hooks/daily-mining'
+      preLoaderRoute: typeof ApiPublicHooksDailyMiningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/inactivity-reminder': {
+      id: '/api/public/hooks/inactivity-reminder'
+      path: '/api/public/hooks/inactivity-reminder'
+      fullPath: '/api/public/hooks/inactivity-reminder'
+      preLoaderRoute: typeof ApiPublicHooksInactivityReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/wa-dispatch': {
+      id: '/api/public/hooks/wa-dispatch'
+      path: '/api/public/hooks/wa-dispatch'
+      fullPath: '/api/public/hooks/wa-dispatch'
+      preLoaderRoute: typeof ApiPublicHooksWaDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/wa-inbound': {
+      id: '/api/public/hooks/wa-inbound'
+      path: '/api/public/hooks/wa-inbound'
+      fullPath: '/api/public/hooks/wa-inbound'
+      preLoaderRoute: typeof ApiPublicHooksWaInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/push/latest': {
+      id: '/api/public/push/latest'
+      path: '/api/public/push/latest'
+      fullPath: '/api/public/push/latest'
+      preLoaderRoute: typeof ApiPublicPushLatestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAcessRoute: typeof AuthenticatedAcessRoute
+  AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
+  AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
+  AuthenticatedBlocosRoute: typeof AuthenticatedBlocosRoute
+  AuthenticatedBuscarRoute: typeof AuthenticatedBuscarRoute
+  AuthenticatedCampanhasRoute: typeof AuthenticatedCampanhasRoute
+  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedCompararRoute: typeof AuthenticatedCompararRoute
+  AuthenticatedCotacoesRoute: typeof AuthenticatedCotacoesRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
+  AuthenticatedDiariosRoute: typeof AuthenticatedDiariosRoute
+  AuthenticatedExternosRoute: typeof AuthenticatedExternosRoute
+  AuthenticatedJarvisRoute: typeof AuthenticatedJarvisRoute
+  AuthenticatedManualRoute: typeof AuthenticatedManualRoute
+  AuthenticatedPapaLeadRoute: typeof AuthenticatedPapaLeadRoute
+  AuthenticatedPapaLeadCampanhasRoute: typeof AuthenticatedPapaLeadCampanhasRoute
+  AuthenticatedPapaLeadMensagensRoute: typeof AuthenticatedPapaLeadMensagensRoute
+  AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
+  AuthenticatedScriptsRoute: typeof AuthenticatedScriptsRoute
+  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAcessRoute: AuthenticatedAcessRoute,
+  AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
+  AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
+  AuthenticatedBlocosRoute: AuthenticatedBlocosRoute,
+  AuthenticatedBuscarRoute: AuthenticatedBuscarRoute,
+  AuthenticatedCampanhasRoute: AuthenticatedCampanhasRoute,
+  AuthenticatedClientesRoute: AuthenticatedClientesRoute,
+  AuthenticatedCompararRoute: AuthenticatedCompararRoute,
+  AuthenticatedCotacoesRoute: AuthenticatedCotacoesRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
+  AuthenticatedDiariosRoute: AuthenticatedDiariosRoute,
+  AuthenticatedExternosRoute: AuthenticatedExternosRoute,
+  AuthenticatedJarvisRoute: AuthenticatedJarvisRoute,
+  AuthenticatedManualRoute: AuthenticatedManualRoute,
+  AuthenticatedPapaLeadRoute: AuthenticatedPapaLeadRoute,
+  AuthenticatedPapaLeadCampanhasRoute: AuthenticatedPapaLeadCampanhasRoute,
+  AuthenticatedPapaLeadMensagensRoute: AuthenticatedPapaLeadMensagensRoute,
+  AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
+  AuthenticatedScriptsRoute: AuthenticatedScriptsRoute,
+  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ApiPublicJarvisRoute: ApiPublicJarvisRoute,
+  ApiPublicHooksAccessRequestRoute: ApiPublicHooksAccessRequestRoute,
+  ApiPublicHooksDailyMiningRoute: ApiPublicHooksDailyMiningRoute,
+  ApiPublicHooksInactivityReminderRoute: ApiPublicHooksInactivityReminderRoute,
+  ApiPublicHooksWaDispatchRoute: ApiPublicHooksWaDispatchRoute,
+  ApiPublicHooksWaInboundRoute: ApiPublicHooksWaInboundRoute,
+  ApiPublicPushLatestRoute: ApiPublicPushLatestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

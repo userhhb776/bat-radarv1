@@ -1,0 +1,153 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791667844968,
+      "tag": "0000_daily_leads",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791667951196,
+      "tag": "0001_enable_cron",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791670204551,
+      "tag": "0002_mining_settings_push",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791686733014,
+      "tag": "0003_wa_scheduled",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791686769346,
+      "tag": "0004_wa_dispatch_cron",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791693810984,
+      "tag": "0005_blocks_campaigns",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791702242017,
+      "tag": "0006_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791737531974,
+      "tag": "0007_pl_script_variants",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791739884626,
+      "tag": "0008_cron_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791739928761,
+      "tag": "0009_cron_use_db_token",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791741033883,
+      "tag": "0010_cron_18min_and_replied",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791744353818,
+      "tag": "0011_dispatch_wake",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791747483020,
+      "tag": "0012_campaign_schedule_cols",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791760855818,
+      "tag": "0013_mining_feedback",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791780659885,
+      "tag": "0014_mining_feedback_visto",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791783741906,
+      "tag": "0015_scripts_variants",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792098074322,
+      "tag": "0016_jarvis_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792310127200,
+      "tag": "0017_account_approval_and_access_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792310806220,
+      "tag": "0018_validate_registration_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792310861398,
+      "tag": "0019_lock_account_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792343632882,
+      "tag": "0020_access_request_push_notifications",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN delivered_site_url text, ADD COLUMN delivered_at timestamptz;

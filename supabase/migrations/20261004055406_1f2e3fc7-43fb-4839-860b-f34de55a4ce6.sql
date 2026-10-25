@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN source text NOT NULL DEFAULT 'batradar', ADD COLUMN instagram text, ADD COLUMN tags text[] NOT NULL DEFAULT '{}';

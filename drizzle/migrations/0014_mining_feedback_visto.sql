@@ -1,0 +1,2 @@
+ALTER TABLE public.mining_feedback DROP CONSTRAINT IF EXISTS mining_feedback_kind_check;
+ALTER TABLE public.mining_feedback ADD CONSTRAINT mining_feedback_kind_check CHECK (kind IN ('descartado','salvo','visto'));
