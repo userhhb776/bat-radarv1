@@ -30,3 +30,4 @@
 - Daily mining learns per user without AI: saved/advanced leads are weighted positives, discards (mining_feedback) and lost leads are negatives, scored over profile features (reviews/rating buckets, web presence, chain/shopping hints, niche, name words); keeps the learning free.
 - Saving companies to a lead block also upserts them into leads (pipeline) without changing existing status; blocks are campaign segments, the pipeline is the master list.
 - Regenerating daily leads stores the replaced ones as mining_feedback kind "visto" so they never return; campaign messages unanswered for 4+ days count as negative learning signals.
+- WhatsApp instances without the app's br<id>- prefix (created directly on the Evolution server) are usable only by admin accounts, via src/lib/wa-owner.ts; app-created ones stay owner-only.
