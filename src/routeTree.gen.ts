@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAcessRouteImport } from './routes/_authenticated/acess'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
+import { Route as AuthenticatedArgosRouteImport } from './routes/_authenticated/argos'
 import { Route as AuthenticatedBlocosRouteImport } from './routes/_authenticated/blocos'
 import { Route as AuthenticatedBuscarRouteImport } from './routes/_authenticated/buscar'
 import { Route as AuthenticatedCampanhasRouteImport } from './routes/_authenticated/campanhas'
@@ -70,6 +71,11 @@ const AuthenticatedAprendizadoRoute =
     path: '/aprendizado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedArgosRoute = AuthenticatedArgosRouteImport.update({
+  id: '/argos',
+  path: '/argos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBlocosRoute = AuthenticatedBlocosRouteImport.update({
   id: '/blocos',
   path: '/blocos',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/acess': typeof AuthenticatedAcessRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
   '/buscar': typeof AuthenticatedBuscarRoute
   '/campanhas': typeof AuthenticatedCampanhasRoute
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/acess': typeof AuthenticatedAcessRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
   '/buscar': typeof AuthenticatedBuscarRoute
   '/campanhas': typeof AuthenticatedCampanhasRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/acess': typeof AuthenticatedAcessRoute
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/_authenticated/argos': typeof AuthenticatedArgosRoute
   '/_authenticated/blocos': typeof AuthenticatedBlocosRoute
   '/_authenticated/buscar': typeof AuthenticatedBuscarRoute
   '/_authenticated/campanhas': typeof AuthenticatedCampanhasRoute
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/aprendizado'
+    | '/argos'
     | '/blocos'
     | '/buscar'
     | '/campanhas'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/aprendizado'
+    | '/argos'
     | '/blocos'
     | '/buscar'
     | '/campanhas'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/_authenticated/acess'
     | '/_authenticated/agendamentos'
     | '/_authenticated/aprendizado'
+    | '/_authenticated/argos'
     | '/_authenticated/blocos'
     | '/_authenticated/buscar'
     | '/_authenticated/campanhas'
@@ -433,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/aprendizado'
       fullPath: '/aprendizado'
       preLoaderRoute: typeof AuthenticatedAprendizadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/argos': {
+      id: '/_authenticated/argos'
+      path: '/argos'
+      fullPath: '/argos'
+      preLoaderRoute: typeof AuthenticatedArgosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/blocos': {
@@ -603,6 +622,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcessRoute: typeof AuthenticatedAcessRoute
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
+  AuthenticatedArgosRoute: typeof AuthenticatedArgosRoute
   AuthenticatedBlocosRoute: typeof AuthenticatedBlocosRoute
   AuthenticatedBuscarRoute: typeof AuthenticatedBuscarRoute
   AuthenticatedCampanhasRoute: typeof AuthenticatedCampanhasRoute
@@ -625,6 +645,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcessRoute: AuthenticatedAcessRoute,
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
+  AuthenticatedArgosRoute: AuthenticatedArgosRoute,
   AuthenticatedBlocosRoute: AuthenticatedBlocosRoute,
   AuthenticatedBuscarRoute: AuthenticatedBuscarRoute,
   AuthenticatedCampanhasRoute: AuthenticatedCampanhasRoute,

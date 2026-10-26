@@ -22,8 +22,6 @@ const TOOLS: Array<{ name: string; description: string; properties: Record<strin
 const SYSTEM = `Você é ARGOS, a inteligência própria do painel BatRadar do Antonio. Fala como o Jarvis do Homem de Ferro: educado, confiante, levemente espirituoso, chamando-o de "senhor" às vezes.
 Regras: respostas CURTAS e precisas (1-3 frases), português do Brasil. Quando pedirem algo, EXECUTE usando as ferramentas — não peça confirmação para leituras ou buscas. Para criar campanhas, descubra ids com listar_blocos/listar_scripts/listar_instancias antes. Nunca invente ids ou números. Se faltar um dado essencial, pergunte em uma frase. Hoje é ${"{HOJE}"}.`;
 
-type Msg = { role: "user" | "assistant" | "tool"; content: string; tool_calls?: unknown; tool_name?: string };
-
 export const argosChat = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
   .inputValidator((d: unknown) => z.object({ messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(8000) })).min(1).max(40) }).parse(d))
@@ -33,7 +31,6 @@ export const argosChat = createServerFn({ method: "POST" })
     const { runAction } = await import("@/lib/jarvis.server");
     const { getRequest } = await import("@tanstack/react-start/server");
     const origin = new URL(getRequest().url).origin;
-    const msgs: Msg[] = [{ role: "assistant", content: "" }].slice(1) as Msg[];
     const convo: any[] = [{ role: "system", content: SYSTEM.replace("{HOJE}", new Date().toLocaleString("pt-BR", { timeZone: "America/Rio_Branco" })) }, ...data.messages];
     const actions: string[] = [];
     for (let step = 0; step < 8; step++) {
@@ -56,6 +53,5 @@ export const argosChat = createServerFn({ method: "POST" })
         convo.push({ role: "tool", tool_name: name, content: JSON.stringify(out).slice(0, 12000) });
       }
     }
-    void msgs;
     return { reply: "Executei várias etapas, senhor, mas não concluí. Pode detalhar o pedido?", actions };
   });
