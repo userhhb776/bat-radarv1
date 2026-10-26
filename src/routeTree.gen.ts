@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAcessRouteImport } from './routes/_authenticated/acess'
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
+import { Route as AuthenticatedArgosRouteImport } from './routes/_authenticated/argos'
 import { Route as AuthenticatedBlocosRouteImport } from './routes/_authenticated/blocos'
 import { Route as AuthenticatedBuscarRouteImport } from './routes/_authenticated/buscar'
 import { Route as AuthenticatedCampanhasRouteImport } from './routes/_authenticated/campanhas'
@@ -24,7 +25,6 @@ import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedDiariosRouteImport } from './routes/_authenticated/diarios'
 import { Route as AuthenticatedExternosRouteImport } from './routes/_authenticated/externos'
-import { Route as AuthenticatedJarvisRouteImport } from './routes/_authenticated/jarvis'
 import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
 import { Route as AuthenticatedPapaLeadRouteImport } from './routes/_authenticated/papa-lead'
 import { Route as AuthenticatedPapaLeadCampanhasRouteImport } from './routes/_authenticated/papa-lead-campanhas'
@@ -71,6 +71,11 @@ const AuthenticatedAprendizadoRoute =
     path: '/aprendizado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedArgosRoute = AuthenticatedArgosRouteImport.update({
+  id: '/argos',
+  path: '/argos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBlocosRoute = AuthenticatedBlocosRouteImport.update({
   id: '/blocos',
   path: '/blocos',
@@ -114,11 +119,6 @@ const AuthenticatedDiariosRoute = AuthenticatedDiariosRouteImport.update({
 const AuthenticatedExternosRoute = AuthenticatedExternosRouteImport.update({
   id: '/externos',
   path: '/externos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedJarvisRoute = AuthenticatedJarvisRouteImport.update({
-  id: '/jarvis',
-  path: '/jarvis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
@@ -204,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/acess': typeof AuthenticatedAcessRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
   '/buscar': typeof AuthenticatedBuscarRoute
   '/campanhas': typeof AuthenticatedCampanhasRoute
@@ -213,7 +214,6 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
-  '/jarvis': typeof AuthenticatedJarvisRoute
   '/manual': typeof AuthenticatedManualRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -235,6 +235,7 @@ export interface FileRoutesByTo {
   '/acess': typeof AuthenticatedAcessRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
   '/buscar': typeof AuthenticatedBuscarRoute
   '/campanhas': typeof AuthenticatedCampanhasRoute
@@ -244,7 +245,6 @@ export interface FileRoutesByTo {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
-  '/jarvis': typeof AuthenticatedJarvisRoute
   '/manual': typeof AuthenticatedManualRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -268,6 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/acess': typeof AuthenticatedAcessRoute
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
+  '/_authenticated/argos': typeof AuthenticatedArgosRoute
   '/_authenticated/blocos': typeof AuthenticatedBlocosRoute
   '/_authenticated/buscar': typeof AuthenticatedBuscarRoute
   '/_authenticated/campanhas': typeof AuthenticatedCampanhasRoute
@@ -277,7 +278,6 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/diarios': typeof AuthenticatedDiariosRoute
   '/_authenticated/externos': typeof AuthenticatedExternosRoute
-  '/_authenticated/jarvis': typeof AuthenticatedJarvisRoute
   '/_authenticated/manual': typeof AuthenticatedManualRoute
   '/_authenticated/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/_authenticated/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -301,6 +301,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/aprendizado'
+    | '/argos'
     | '/blocos'
     | '/buscar'
     | '/campanhas'
@@ -310,7 +311,6 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
-    | '/jarvis'
     | '/manual'
     | '/papa-lead'
     | '/papa-lead-campanhas'
@@ -332,6 +332,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/aprendizado'
+    | '/argos'
     | '/blocos'
     | '/buscar'
     | '/campanhas'
@@ -341,7 +342,6 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
-    | '/jarvis'
     | '/manual'
     | '/papa-lead'
     | '/papa-lead-campanhas'
@@ -364,6 +364,7 @@ export interface FileRouteTypes {
     | '/_authenticated/acess'
     | '/_authenticated/agendamentos'
     | '/_authenticated/aprendizado'
+    | '/_authenticated/argos'
     | '/_authenticated/blocos'
     | '/_authenticated/buscar'
     | '/_authenticated/campanhas'
@@ -373,7 +374,6 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/diarios'
     | '/_authenticated/externos'
-    | '/_authenticated/jarvis'
     | '/_authenticated/manual'
     | '/_authenticated/papa-lead'
     | '/_authenticated/papa-lead-campanhas'
@@ -447,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAprendizadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/argos': {
+      id: '/_authenticated/argos'
+      path: '/argos'
+      fullPath: '/argos'
+      preLoaderRoute: typeof AuthenticatedArgosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/blocos': {
       id: '/_authenticated/blocos'
       path: '/blocos'
@@ -508,13 +515,6 @@ declare module '@tanstack/react-router' {
       path: '/externos'
       fullPath: '/externos'
       preLoaderRoute: typeof AuthenticatedExternosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/jarvis': {
-      id: '/_authenticated/jarvis'
-      path: '/jarvis'
-      fullPath: '/jarvis'
-      preLoaderRoute: typeof AuthenticatedJarvisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manual': {
@@ -622,6 +622,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcessRoute: typeof AuthenticatedAcessRoute
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
+  AuthenticatedArgosRoute: typeof AuthenticatedArgosRoute
   AuthenticatedBlocosRoute: typeof AuthenticatedBlocosRoute
   AuthenticatedBuscarRoute: typeof AuthenticatedBuscarRoute
   AuthenticatedCampanhasRoute: typeof AuthenticatedCampanhasRoute
@@ -631,7 +632,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDiariosRoute: typeof AuthenticatedDiariosRoute
   AuthenticatedExternosRoute: typeof AuthenticatedExternosRoute
-  AuthenticatedJarvisRoute: typeof AuthenticatedJarvisRoute
   AuthenticatedManualRoute: typeof AuthenticatedManualRoute
   AuthenticatedPapaLeadRoute: typeof AuthenticatedPapaLeadRoute
   AuthenticatedPapaLeadCampanhasRoute: typeof AuthenticatedPapaLeadCampanhasRoute
@@ -645,6 +645,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAcessRoute: AuthenticatedAcessRoute,
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
+  AuthenticatedArgosRoute: AuthenticatedArgosRoute,
   AuthenticatedBlocosRoute: AuthenticatedBlocosRoute,
   AuthenticatedBuscarRoute: AuthenticatedBuscarRoute,
   AuthenticatedCampanhasRoute: AuthenticatedCampanhasRoute,
@@ -654,7 +655,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDiariosRoute: AuthenticatedDiariosRoute,
   AuthenticatedExternosRoute: AuthenticatedExternosRoute,
-  AuthenticatedJarvisRoute: AuthenticatedJarvisRoute,
   AuthenticatedManualRoute: AuthenticatedManualRoute,
   AuthenticatedPapaLeadRoute: AuthenticatedPapaLeadRoute,
   AuthenticatedPapaLeadCampanhasRoute: AuthenticatedPapaLeadCampanhasRoute,
