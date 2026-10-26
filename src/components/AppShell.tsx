@@ -40,7 +40,7 @@ const groups = [
   { label: "Ajuda", items: [
     { title: "Manual", url: "/manual", icon: BookOpen },
     { title: "Aprendizado", url: "/aprendizado", icon: Brain },
-    { title: "Jarvis", url: "/jarvis", icon: Bot },
+    { title: "Argos", url: "/argos", icon: Bot },
   ] },
 ] as const;
 

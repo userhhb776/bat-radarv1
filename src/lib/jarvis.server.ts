@@ -4,7 +4,8 @@ import { planCompanyTimes } from "@/lib/campaign-schedule";
 import { distributeVariants, fillScript, scriptMessages, type Script } from "@/lib/scripts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
-const prefixFor = (userId: string) => `br${userId.replace(/-/g, "").slice(0, 10)}`;
+import { canUse, prefixFor, isAppInstance } from "@/lib/wa-owner";
+async function adminOf(sb: SupabaseClient, userId: string) { const { data } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" }); return data === true; }
 type P = Record<string, unknown>;
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const num = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? v : d);
@@ -66,9 +67,9 @@ export async function runAction(sb: SupabaseClient, userId: string, action: stri
       const list = (r.ok ? await r.json() : []) as Array<Record<string, unknown>>;
       const { data: st } = await own(sb.from("user_settings").select("wa_labels")).maybeSingle();
       const labels = ((st as any)?.wa_labels ?? {}) as Record<string, string>;
-      const pre = prefixFor(userId) + "-";
-      return (Array.isArray(list) ? list : []).filter((i) => String(i["name"]).startsWith(pre))
-        .map((i) => ({ id: String(i["name"]), nome: labels[String(i["name"])] || String(i["name"]).slice(pre.length), conectado: i["connectionStatus"] === "open" }));
+      const pre = prefixFor(userId) + "-"; const admin = await adminOf(sb, userId);
+      return (Array.isArray(list) ? list : []).filter((i) => canUse(userId, admin, String(i["name"])))
+        .map((i) => { const n = String(i["name"]); return { id: n, nome: labels[n] || (isAppInstance(n) ? n.slice(pre.length) : n), conectado: i["connectionStatus"] === "open" }; });
     }
     case "buscar_leads": {
       const niche = str(p["nicho"], 80), city = str(p["cidade"], 80);
@@ -119,7 +120,7 @@ export async function runAction(sb: SupabaseClient, userId: string, action: stri
     }
     case "criar_campanha": {
       const blockId = str(p["bloco_id"], 60), scriptId = str(p["script_id"], 60), instance = str(p["instancia"], 80);
-      if (!instance.startsWith(prefixFor(userId) + "-")) throw new Error("Instância inválida. Use listar_instancias.");
+      if (!canUse(userId, await adminOf(sb, userId), instance)) throw new Error("Instância inválida. Use listar_instancias.");
       const { data: script } = await own(sb.from("scripts").select("*").eq("id", scriptId)).maybeSingle();
       if (!script) throw new Error("Script não encontrado.");
       const msgs = scriptMessages(script as Script); if (!msgs.length) throw new Error("O script não tem mensagens.");
