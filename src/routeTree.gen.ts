@@ -24,7 +24,6 @@ import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedDiariosRouteImport } from './routes/_authenticated/diarios'
 import { Route as AuthenticatedExternosRouteImport } from './routes/_authenticated/externos'
-import { Route as AuthenticatedJarvisRouteImport } from './routes/_authenticated/jarvis'
 import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
 import { Route as AuthenticatedPapaLeadRouteImport } from './routes/_authenticated/papa-lead'
 import { Route as AuthenticatedPapaLeadCampanhasRouteImport } from './routes/_authenticated/papa-lead-campanhas'
@@ -114,11 +113,6 @@ const AuthenticatedDiariosRoute = AuthenticatedDiariosRouteImport.update({
 const AuthenticatedExternosRoute = AuthenticatedExternosRouteImport.update({
   id: '/externos',
   path: '/externos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedJarvisRoute = AuthenticatedJarvisRouteImport.update({
-  id: '/jarvis',
-  path: '/jarvis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
@@ -213,7 +207,6 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
-  '/jarvis': typeof AuthenticatedJarvisRoute
   '/manual': typeof AuthenticatedManualRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -244,7 +237,6 @@ export interface FileRoutesByTo {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
-  '/jarvis': typeof AuthenticatedJarvisRoute
   '/manual': typeof AuthenticatedManualRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -277,7 +269,6 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/diarios': typeof AuthenticatedDiariosRoute
   '/_authenticated/externos': typeof AuthenticatedExternosRoute
-  '/_authenticated/jarvis': typeof AuthenticatedJarvisRoute
   '/_authenticated/manual': typeof AuthenticatedManualRoute
   '/_authenticated/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/_authenticated/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
@@ -310,7 +301,6 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
-    | '/jarvis'
     | '/manual'
     | '/papa-lead'
     | '/papa-lead-campanhas'
@@ -341,7 +331,6 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
-    | '/jarvis'
     | '/manual'
     | '/papa-lead'
     | '/papa-lead-campanhas'
@@ -373,7 +362,6 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/diarios'
     | '/_authenticated/externos'
-    | '/_authenticated/jarvis'
     | '/_authenticated/manual'
     | '/_authenticated/papa-lead'
     | '/_authenticated/papa-lead-campanhas'
@@ -510,13 +498,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExternosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/jarvis': {
-      id: '/_authenticated/jarvis'
-      path: '/jarvis'
-      fullPath: '/jarvis'
-      preLoaderRoute: typeof AuthenticatedJarvisRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/manual': {
       id: '/_authenticated/manual'
       path: '/manual'
@@ -631,7 +612,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDiariosRoute: typeof AuthenticatedDiariosRoute
   AuthenticatedExternosRoute: typeof AuthenticatedExternosRoute
-  AuthenticatedJarvisRoute: typeof AuthenticatedJarvisRoute
   AuthenticatedManualRoute: typeof AuthenticatedManualRoute
   AuthenticatedPapaLeadRoute: typeof AuthenticatedPapaLeadRoute
   AuthenticatedPapaLeadCampanhasRoute: typeof AuthenticatedPapaLeadCampanhasRoute
@@ -654,7 +634,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDiariosRoute: AuthenticatedDiariosRoute,
   AuthenticatedExternosRoute: AuthenticatedExternosRoute,
-  AuthenticatedJarvisRoute: AuthenticatedJarvisRoute,
   AuthenticatedManualRoute: AuthenticatedManualRoute,
   AuthenticatedPapaLeadRoute: AuthenticatedPapaLeadRoute,
   AuthenticatedPapaLeadCampanhasRoute: AuthenticatedPapaLeadCampanhasRoute,
