@@ -6,8 +6,10 @@ export type Agent = {
   id: string; user_id: string; name: string; mission: string; offer: string; rules: string; ideal_client: string;
   learned: string; instance: string; ai_provider: string; ai_key: string | null; model: string;
   active: boolean; auto_reply: boolean; training_mode: boolean; training_phone: string;
-  context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner;
+  context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner; btx?: Btx;
 };
+export type BtxRule = { when: string; variants: string[]; audio_id?: string };
+export type Btx = { prompt?: string; rules?: BtxRule[] };
 export type Step = { title: string; goal: string; message: string };
 export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number };
 
@@ -32,6 +34,7 @@ const PANEL_TOOLS: Tool[] = [
 
 const CLIENT_TOOLS: Tool[] = [
   { name: "enviar_audio", description: "Envia um dos áudios gravados pelo dono, quando o gatilho dele combina com o momento da conversa. Use no lugar de explicar por texto.", properties: { audio_id: { type: "string" } }, required: ["audio_id"] },
+  { name: "responder_btx", description: "Responde usando a resposta PRONTA do roteiro B-T6X para a situação indicada (número da situação). Use SEMPRE que a fala do cliente combinar com uma situação do B-T6X.", properties: { situacao: { type: "number" } }, required: ["situacao"] },
   { name: "avisar_dono", description: "Avisa o dono que este cliente está quente / quer fechar / pediu humano.", properties: { motivo: { type: "string" } }, required: ["motivo"] },
 ];
 
@@ -152,21 +155,40 @@ JEITO DE FALAR (obrigatório):
 - Não invente preço, prazo ou desconto; se perguntarem, diga que confirma e chame avisar_dono.
 ${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; aí responda com texto vazio ou bem curto):\n${audios.map((x) => `- id ${x.id}: "${x.title}" — enviar quando: ${x.trigger || x.title}`).join("\n")}` : ""}
 ${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
-Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono.`;
+${btxText(a)}
+Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono (é silencioso: NUNCA diga ao cliente que vai encaminhar, passar pro Antonio ou chamar alguém).`;
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
-  let hot = false; let reason = ""; let audioId = "";
+  let hot = false; let reason = ""; let audioId = ""; let fixed: string[] = [];
+  const rules = a.btx?.rules ?? [];
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
-    if (!calls.length) return { replies: splitBubbles(m.content ?? ""), hot, reason, audioId };
+    if (!calls.length) return { replies: fixed.length ? fixed : splitBubbles(m.content ?? ""), hot, reason, audioId };
     convo.push({ role: "assistant", content: m.content ?? "", tool_calls: calls });
     for (const c of calls) {
-      if (c.function.name === "enviar_audio") { const id = String(c.function.arguments?.["audio_id"] ?? ""); if (audios.some((x) => x.id === id)) audioId = id; }
+      if (c.function.name === "responder_btx") {
+        const r = rules[Number(c.function.arguments?.["situacao"]) - 1];
+        if (r) { const pick = pickVariant(r.variants); if (pick) fixed = splitBubbles(fillTemplate(pick, { name: contactName })); if (r.audio_id && audios.some((x) => x.id === r.audio_id)) audioId = r.audio_id; }
+        if (fixed.length || audioId) return { replies: fixed, hot, reason, audioId };
+      } else if (c.function.name === "enviar_audio") { const id = String(c.function.arguments?.["audio_id"] ?? ""); if (audios.some((x) => x.id === id)) audioId = id; }
       else { hot = true; reason = String(c.function.arguments?.["motivo"] ?? ""); }
       convo.push({ role: "tool", tool_name: c.function.name, content: "{\"ok\":true}" });
     }
   }
   return { replies: [] as string[], hot, reason, audioId };
+}
+
+export function pickVariant(v: string[], rnd = Math.random()) {
+  const ok = (v ?? []).map((x) => x.trim()).filter(Boolean);
+  return ok.length ? ok[Math.floor(rnd * ok.length)]! : "";
+}
+
+function btxText(a: Agent) {
+  const b = a.btx ?? {}; const rules = (b.rules ?? []).filter((r) => r.when?.trim());
+  if (!b.prompt?.trim() && !rules.length) return "";
+  return `ROTEIRO B-T6X (PRIORIDADE MÁXIMA — siga à risca, não invente fora dele):
+${b.prompt?.trim() ?? ""}
+${rules.length ? "SITUAÇÕES COM RESPOSTA PRONTA (quando a fala do cliente combinar, chame responder_btx com o número, sem escrever texto):\n" + rules.map((r, i) => `${i + 1}. Quando: ${r.when}`).join("\n") : ""}`;
 }
 
 export function splitBubbles(t: string) {

@@ -168,3 +168,54 @@ export const listMyBlocks = createServerFn({ method: "GET" })
     const { data } = await (context.supabase as any).from("lead_blocks").select("id,name").order("created_at", { ascending: false }).limit(100);
     return (data ?? []) as Array<{ id: string; name: string }>;
   });
+
+// ---------- B-T6X: roteiro de abordagem com situações e variações ----------
+const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), audio_id: z.string().max(60).optional() });
+const btxSchema = z.object({ prompt: z.string().max(8000), rules: z.array(btxRule).max(25) });
+
+export const saveBtx = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), btx: btxSchema }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).from("agents").update({ btx: data.btx }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+async function ask(agent: any, prompt: string) {
+  const fallback = (await (await import("@/lib/service-config.server")).getOllamaKey()) ?? "";
+  const key = agent.ai_provider === "custom" && agent.ai_key ? agent.ai_key : fallback;
+  if (!key) throw new Error("Chave de IA não configurada.");
+  const res = await fetch("https://ollama.com/api/chat", {
+    method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: agent.model || "gpt-oss:120b", stream: false, messages: [{ role: "user", content: prompt }] }),
+  });
+  if (!res.ok) throw new Error(res.status === 429 ? "Limite da IA atingido." : `IA respondeu ${res.status}.`);
+  return String(((await res.json()) as any).message?.content ?? "").trim();
+}
+
+/** Gera uma variação da mensagem trocando palavras por sinônimos, mantendo sentido e tom. */
+export const varyMessage = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), text: z.string().min(1).max(1500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const a = await loadAgent(context.supabase, data.id);
+    const out = await ask(a, `Reescreva a mensagem de WhatsApp abaixo com o MESMO sentido, tamanho e tom informal, trocando algumas palavras por sinônimos e mudando levemente a ordem. Mantenha placeholders como {nome} intactos e linhas em branco entre balões. Responda só com a nova mensagem, sem aspas.\n\n${data.text}`);
+    return { text: out.replace(/^["']|["']$/g, "").slice(0, 1500) };
+  });
+
+/** Transforma o prompt do B-T6X em situações + respostas (plano de funil). */
+export const buildBtxPlan = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), prompt: z.string().min(5).max(8000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const a = await loadAgent(sb, data.id);
+    const { data: blocks } = await sb.from("scripts").select("title,body,message2,message3");
+    const ref = (blocks ?? []).map((s: any) => `[${s.title}]\n${[s.body, s.message2, s.message3].filter(Boolean).join("\n---\n")}`).join("\n\n").slice(0, 5000);
+    const out = await ask(a, `Transforme as instruções do dono num funil de WhatsApp. Responda APENAS JSON: {"rules":[{"when":"situação curta","variants":["msg 1","msg 2"]}]}. Cada situação com 2 variações naturais (informais, curtas, sem cara de robô). Inclua "Abordagem inicial" primeiro se citada. Se ele citar um script/bloco pelo nome, use o texto dele.\n\nSCRIPTS SALVOS:\n${ref || "nenhum"}\n\nINSTRUÇÕES:\n${data.prompt}`);
+    const m = out.match(/\{[\s\S]*\}/);
+    const parsed = btxSchema.shape.rules.safeParse(m ? JSON.parse(m[0]).rules : null);
+    if (!parsed.success) throw new Error("A IA não devolveu um plano válido. Tente de novo.");
+    return { rules: parsed.data };
+  });

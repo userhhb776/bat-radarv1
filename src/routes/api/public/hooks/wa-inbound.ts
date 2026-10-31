@@ -55,10 +55,13 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               const key = (await (await import("@/lib/service-config.server")).getOllamaKey()) ?? "";
               const origin = new URL(request.url).origin;
               const phone = phones[0]!;
-              const trainer = agents.find((a) => a.training_mode && a.training_phone && match(a.training_phone));
-              if (trainer && /^\/dono12\b/i.test(text)) {
+              const isOwner = (a: any) => a.training_phone && match(a.training_phone);
+              const trainer = agents.find((a) => a.training_mode && isOwner(a));
+              const boss = /^\s*\/dono\s?12\b/i.test(text) ? (trainer ?? agents.find(isOwner)) : undefined;
+              if (boss) {
+                const trainer = boss;
                 // /dono12 = ordem do dono nos bastidores; sem o comando, o agente trata você como cliente (simulação)
-                const order = text.replace(/^\/dono12\b/i, "").trim() || "Status rápido.";
+                const order = text.replace(/^\s*\/dono\s?12\b/i, "").trim() || "Status rápido.";
                 const tp = "treino:" + trainer.training_phone;
                 const { data: past } = await sb.from("agent_messages").select("direction,body").eq("agent_id", trainer.id).eq("phone", tp).order("created_at", { ascending: false }).limit(16);
                 const hist = (past ?? []).reverse().map((m: any) => ({ role: m.direction === "in" ? "user" : "assistant", content: m.body }));
@@ -93,7 +96,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 if (r.skipped) continue;
                 if (r.hot) {
                   await notifyUser(supabaseAdmin, a.user_id, `🔥 ${a.name}: cliente quente`, `${name || phone}: ${r.reason || "quer avançar"}`, "/agentes").catch(() => 0);
-                  if (a.training_phone) await evoSend(instance, a.training_phone, [`🔥 ${name || phone} (${phone}) está quente: ${r.reason}`]).catch(() => 0);
+                  if (a.training_phone && !match(a.training_phone) && !samePhone(phone, a.training_phone)) await evoSend(instance, a.training_phone, [`🔥 ${name || phone} (${phone}) está quente: ${r.reason}`]).catch(() => 0);
                 }
               }
             }
