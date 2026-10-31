@@ -32,6 +32,7 @@ import { Route as AuthenticatedPapaLeadMensagensRouteImport } from './routes/_au
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
 import { Route as AuthenticatedScriptsRouteImport } from './routes/_authenticated/scripts'
 import { Route as AuthenticatedSistemaRouteImport } from './routes/_authenticated/sistema'
+import { Route as AuthenticatedTesteRouteImport } from './routes/_authenticated/teste'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as ApiPublicJarvisRouteImport } from './routes/api/public/jarvis'
 import { Route as ApiPublicHooksAccessRequestRouteImport } from './routes/api/public/hooks/access-request'
@@ -159,6 +160,11 @@ const AuthenticatedSistemaRoute = AuthenticatedSistemaRouteImport.update({
   path: '/sistema',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTesteRoute = AuthenticatedTesteRouteImport.update({
+  id: '/teste',
+  path: '/teste',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
   '/sistema': typeof AuthenticatedSistemaRoute
+  '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
   '/sistema': typeof AuthenticatedSistemaRoute
+  '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/scripts': typeof AuthenticatedScriptsRoute
   '/_authenticated/sistema': typeof AuthenticatedSistemaRoute
+  '/_authenticated/teste': typeof AuthenticatedTesteRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/scripts'
     | '/sistema'
+    | '/teste'
     | '/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/scripts'
     | '/sistema'
+    | '/teste'
     | '/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -392,6 +403,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pipeline'
     | '/_authenticated/scripts'
     | '/_authenticated/sistema'
+    | '/_authenticated/teste'
     | '/_authenticated/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -578,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSistemaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/teste': {
+      id: '/_authenticated/teste'
+      path: '/teste'
+      fullPath: '/teste'
+      preLoaderRoute: typeof AuthenticatedTesteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
       path: '/whatsapp'
@@ -658,6 +677,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedScriptsRoute: typeof AuthenticatedScriptsRoute
   AuthenticatedSistemaRoute: typeof AuthenticatedSistemaRoute
+  AuthenticatedTesteRoute: typeof AuthenticatedTesteRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
 }
 
@@ -682,6 +702,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedScriptsRoute: AuthenticatedScriptsRoute,
   AuthenticatedSistemaRoute: AuthenticatedSistemaRoute,
+  AuthenticatedTesteRoute: AuthenticatedTesteRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
 }
 

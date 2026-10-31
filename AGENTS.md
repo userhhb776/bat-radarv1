@@ -32,3 +32,4 @@
 - Regenerating daily leads stores the replaced ones as mining_feedback kind "visto" so they never return; campaign messages unanswered for 4+ days count as negative learning signals.
 - WhatsApp instances without the app's br<id>- prefix (created directly on the Evolution server) are usable only by admin accounts, via src/lib/wa-owner.ts; app-created ones stay owner-only.
 - The in-panel assistant "Argos" (/argos) runs on Ollama Cloud (OLLAMA_API_KEY) with tool calls mapped to jarvis.server runAction using the user RLS client; this keeps one action layer for the assistant and the external Jarvis API.
+- Keep the simplified /teste overview inside the authenticated layout, reuse owner-scoped lead queries, and leave existing screens unchanged; this isolates the layout experiment without duplicating business logic.
