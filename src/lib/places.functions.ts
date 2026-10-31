@@ -22,7 +22,8 @@ async function handleError(res: Response): Promise<never> {
 
 const SearchInput = z.object({
   niche: z.string().trim().min(2).max(80),
-  city: z.string().trim().min(2).max(80),
+  city: z.string().trim().max(80).optional().default(""),
+  store: z.boolean().optional().default(false),
   neighborhood: z.string().trim().max(80).optional().default(""),
   minRating: z.number().min(0).max(5).optional().default(0),
   pageToken: z.string().max(2000).optional(),
@@ -36,12 +37,14 @@ export const searchPlaces = createServerFn({ method: "POST" })
     if (auditError) throw new Error("Não foi possível registrar a pesquisa. Tente novamente.");
     const { lovable, maps } = creds();
     const where = [data.neighborhood, data.city].filter(Boolean).join(", ");
+    if (!data.store && data.city.length < 2) throw new Error("Informe a cidade.");
+    // Loja específica: busca pelo nome em qualquer lugar do mundo (sem restringir ao Brasil).
     const body: Record<string, unknown> = {
-      textQuery: `${data.niche} em ${where}`,
+      textQuery: data.store ? [data.niche, where].filter(Boolean).join(", ") : `${data.niche} em ${where}`,
       pageSize: 20,
       languageCode: "pt-BR",
-      regionCode: "BR",
     };
+    if (!data.store) body["regionCode"] = "BR";
     if (data.minRating > 0) body["minRating"] = data.minRating;
     if (data.pageToken) body["pageToken"] = data.pageToken;
 
