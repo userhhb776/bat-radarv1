@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Criar e verificar /teste com navegação simplificada e dados reais, sem alterar o painel atual
 - [x] Notificar a conta principal no celular a cada nova solicitação de cadastro
 - [x] Cadastro com nome e aprovação; área ACESS exclusiva, histórico e proteção das contas pendentes
 - [x] Aba WhatsApp: conexão por QR Code (vários números), sequência de mensagens, disparo sem limites
