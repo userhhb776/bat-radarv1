@@ -251,6 +251,16 @@ export function openingFor(a: Agent) {
   return a.script_steps?.[0]?.message ?? "";
 }
 
+/** Cidades permitidas: só as dos estados marcados (uma cidade pedida fora deles é ignorada). */
+export async function citiesFor(m: Miner, city?: unknown) {
+  const { CITIES } = await import("@/lib/mining-options");
+  const states = (m.states ?? []).filter(Boolean);
+  const inStates = CITIES.filter((c) => states.includes(c.split(", ")[1]!));
+  const want = city ? String(city) : "";
+  if (states.length) return want ? (inStates.filter((c) => c.toLowerCase().startsWith(want.toLowerCase().split(",")[0]!.trim())).length ? inStates.filter((c) => c.toLowerCase().startsWith(want.toLowerCase().split(",")[0]!.trim())) : inStates) : inStates;
+  return want ? [want] : m.city ? [m.city] : [];
+}
+
 /** Minerador próprio do agente: carteira separada dos leads do dono. */
 export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: unknown; city?: unknown; limit?: unknown } = {}) {
   const m = (a.miner ?? {}) as Miner;
