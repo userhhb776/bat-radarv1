@@ -7,7 +7,7 @@ export function inboundToken() {
   return Array.from(h.slice(0, 16)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export const INBOUND_URL = "https://project--630b7e1b-b5e9-450e-a09f-ee7087d788d3.lovable.app/api/public/hooks/wa-inbound";
+export const INBOUND_URL = "https://bat-radarv1.lovable.app/api/public/hooks/wa-inbound";
 
 /** Liga o aviso de mensagens recebidas na conexão do WhatsApp (idempotente). */
 export async function registerInbound(instance: string) {

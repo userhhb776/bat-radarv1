@@ -31,13 +31,18 @@ const CLIENT_TOOLS: Tool[] = [
 ];
 
 function brief(a: Agent) {
-  return `Você é ${a.name}, um agente de vendas autônomo que trabalha pelo Antonio no painel BatRadar.
+  return `Você é ${a.name}, agente de vendas que trabalha para o Antonio.
 MISSÃO: ${a.mission || "prospectar e conversar com empresas"}
 O QUE VENDE (adapte-se, não é sempre site): ${a.offer || "pergunte ao dono"}
 CLIENTE IDEAL: ${a.ideal_client || "não definido"}
 REGRAS RÍGIDAS DO DONO (siga sempre): ${a.rules || "nenhuma"}
 APRENDIZADOS: ${a.learned || "nenhum"}
 Hoje: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Rio_Branco" })}.`;
+}
+
+async function scriptsTone(sb: SupabaseClient, userId: string) {
+  const { data } = await sb.from("scripts").select("title,body,message2,message3").eq("user_id", userId).limit(3);
+  return (data ?? []).map((s: any) => `[${s.title}]\n${[s.body, s.message2, s.message3].filter(Boolean).join("\n")}`).join("\n\n").slice(0, 3000);
 }
 
 async function llm(a: Agent, fallbackKey: string, messages: any[], tools: Tool[]) {
