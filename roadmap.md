@@ -1,7 +1,8 @@
-# Roadmap
-- [x] Notificar a conta principal no celular a cada nova solicitação de cadastro
-- [x] Cadastro com nome e aprovação; área ACESS exclusiva, histórico e proteção das contas pendentes
-- [x] Aba WhatsApp: conexão por QR Code (vários números), sequência de mensagens, disparo sem limites
-- [x] Disparo agendado no servidor (dia/horário por empresa, a cada 5 min)
-- [x] Botões de bloco/agendamento nos leads, aba Agendamentos, campanha em 3 etapas com métricas
-- [x] Papa Lead em 3 abas: Contatos (filtro de admins), Mensagens com variações, Campanhas em tela cheia por etapas
+# Roadmap – Agentes
+- [ ] Cadência humana (atraso de leitura + digitando, perfis de ritmo, mensagens quebradas)
+- [ ] Funil de script por etapas + contexto + estilo de fala
+- [ ] Áudios por gatilho (enviados como nota de voz)
+- [ ] Estudo de prints (texto extraído, imagem descartada)
+- [ ] Painel próprio por agente: atividade ao vivo, métricas
+- [ ] Minerador próprio do agente (leads separados) + botão mover para meus leads
+- [ ] Chat da conversa com envio manual + pausar IA por contato
