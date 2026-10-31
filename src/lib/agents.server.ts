@@ -81,7 +81,7 @@ async function llm(a: Agent, fallbackKey: string, messages: any[], tools: Tool[]
 
 const digits = (s: string) => s.replace(/\D/g, "");
 
-async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<string, any>, origin: string) {
+export async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<string, any>, origin: string) {
   if (name === "conversa_com") {
     const q = String(p["busca"] ?? "").trim();
     const d = digits(q);
@@ -104,6 +104,7 @@ async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<s
     return { ok: true };
   }
   if (name === "enviar_mensagem") {
+    if (a.miner?.md_teste) { await logEvent(sb, a, "teste", `[md-teste] mandaria para ${String(p["telefone"])}: "${String(p["texto"]).slice(0, 220)}"`); return { ok: true, teste: true, aviso: "md-teste ligado: nada foi enviado." }; }
     if (!a.instance) return { erro: "Agente sem número de WhatsApp." };
     const { evoSend } = await import("@/lib/evolution.server");
     await evoSend(a.instance, String(p["telefone"]), [String(p["texto"])]);
@@ -210,6 +211,10 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   const { data: last } = await sb.from("agent_messages").select("id,direction,manual").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
   const r = await agentClientReply(sb, a, key, phone, name);
+  if (a.miner?.md_teste) {
+    await logEvent(sb, a, "teste", `[md-teste] responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`);
+    return { ...r, skipped: "md-teste" };
+  }
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
   if (r.replies.length) {
     await evoSend(instance, phone, r.replies);
@@ -246,13 +251,22 @@ export function openingFor(a: Agent) {
   return a.script_steps?.[0]?.message ?? "";
 }
 
+/** Cidades permitidas: só as dos estados marcados (uma cidade pedida fora deles é ignorada). */
+export async function citiesFor(m: Miner, city?: unknown) {
+  const { CITIES } = await import("@/lib/mining-options");
+  const states = (m.states ?? []).filter(Boolean);
+  const inStates = CITIES.filter((c) => states.includes(c.split(", ")[1]!));
+  const want = city ? String(city) : "";
+  if (states.length) return want ? (inStates.filter((c) => c.toLowerCase().startsWith(want.toLowerCase().split(",")[0]!.trim())).length ? inStates.filter((c) => c.toLowerCase().startsWith(want.toLowerCase().split(",")[0]!.trim())) : inStates) : inStates;
+  return want ? [want] : m.city ? [m.city] : [];
+}
+
 /** Minerador próprio do agente: carteira separada dos leads do dono. */
 export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: unknown; city?: unknown; limit?: unknown } = {}) {
   const m = (a.miner ?? {}) as Miner;
   const niche = String(o.niche || m.niche || "").trim();
-  const { CITIES } = await import("@/lib/mining-options");
   const states = (m.states ?? []).filter(Boolean);
-  let cities = o.city ? [String(o.city)] : states.length ? CITIES.filter((c) => states.includes(c.split(", ")[1]!)) : m.city ? [m.city] : [];
+  let cities = await citiesFor(m, o.city);
   if (!niche || !cities.length) return { erro: "Escolha o nicho e pelo menos um estado." };
   cities = [...cities].sort(() => Math.random() - 0.5).slice(0, 6);
   const limit = Math.max(1, Math.min(60, Number(o.limit) || m.daily || 15));
