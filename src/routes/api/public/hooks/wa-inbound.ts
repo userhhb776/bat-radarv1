@@ -84,6 +84,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               }
             }
           } catch (e) { console.error("agent", e); }
+          if (fromMe) continue;
 
           // BatRadar (campanhas Google e agendamentos)
           const { data: rows } = await supabaseAdmin.from("wa_scheduled").select("id,user_id,lead_id,name,phone,status,campaign_id")
