@@ -32,7 +32,6 @@ const groups: { title: string; items: Item[] }[] = [
     title: "Vender",
     items: [
       { to: "/pipeline", label: "Funil", desc: "Onde cada cliente está", icon: KanbanSquare },
-      { to: "/crm", label: "Clientes", desc: "Contatos e histórico", icon: Users },
       { to: "/cotacoes", label: "Orçamentos", desc: "Propostas enviadas", icon: FileText },
     ],
   },
@@ -40,7 +39,6 @@ const groups: { title: string; items: Item[] }[] = [
     title: "Mensagens",
     items: [
       { to: "/campanhas", label: "Campanhas", desc: "Envios em massa", icon: Megaphone },
-      { to: "/agendamentos", label: "Agendados", desc: "O que vai sair e quando", icon: CalendarClock },
       { to: "/whatsapp", label: "WhatsApp", desc: "Seus números conectados", icon: MessageCircle },
     ],
   },

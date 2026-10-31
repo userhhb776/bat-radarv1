@@ -97,12 +97,15 @@ function Chats({ id, messages, paused }: { id: string; messages: any[]; paused: 
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  // mesma pessoa com ou sem o 9º dígito: agrupa por DDD + 8 últimos dígitos
+  const pk = (p: string) => { const d = String(p).replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, ""); return d.slice(0, 2) + d.slice(-8); };
   const threads = useMemo(() => {
     const m = new Map<string, { name: string; last: string; at: string; hot: boolean }>();
-    for (const r of messages) { if (String(r.phone).startsWith("treino")) continue; const t = m.get(r.phone) ?? { name: r.contact_name || r.phone, last: r.body, at: r.created_at, hot: false }; if (r.contact_name && t.name === r.phone) t.name = r.contact_name; t.hot ||= r.hot; m.set(r.phone, t); }
+    const keyPhone = new Map<string, string>();
+    for (const r of messages) { if (String(r.phone).startsWith("treino")) continue; const k = pk(r.phone); if (!keyPhone.has(k)) keyPhone.set(k, r.phone); const ph = keyPhone.get(k)!; const t = m.get(ph) ?? { name: r.contact_name || r.phone, last: r.body, at: r.created_at, hot: false }; if (r.contact_name && t.name === r.phone) t.name = r.contact_name; t.hot ||= r.hot; m.set(ph, t); }
     return [...m.entries()].sort((a, b) => Number(b[1].hot) - Number(a[1].hot) || b[1].at.localeCompare(a[1].at));
   }, [messages]);
-  const conv = sel ? messages.filter((r) => r.phone === sel).slice().reverse() : [];
+  const conv = sel ? messages.filter((r) => !String(r.phone).startsWith("treino") && pk(r.phone) === pk(sel)).slice().reverse() : [];
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [conv.length, sel]);
   const isPaused = !!sel && paused.includes(sel);
   async function submit() {
