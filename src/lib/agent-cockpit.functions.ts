@@ -153,7 +153,8 @@ export const importBlockToAgent = createServerFn({ method: "POST" })
     const sb = context.supabase as any;
     const a = await loadAgent(sb, data.id);
     const { data: items } = await sb.from("block_items").select("*").eq("block_id", data.blockId).not("phone", "is", null).limit(300);
-    const approach = data.approach && !!a.instance && !!a.script_steps?.[0]?.message;
+    const { openingFor } = await import("@/lib/agents.server");
+    const approach = data.approach && !a.miner?.md_teste && !!a.instance && !!openingFor(a);
     let t = Date.now() + 2 * 60000;
     const rows = (items ?? []).map((x: any) => { t += (6 + Math.random() * 9) * 60000; return { user_id: context.userId, agent_id: a.id, place_id: x.place_id, name: x.name, phone: x.phone, address: x.address, website: x.website, rating: x.rating, reviews_count: x.reviews_count ?? 0, niche: x.niche ?? "", city: x.city ?? "", maps_url: x.maps_url, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
     if (rows.length) await sb.from("agent_leads").upsert(rows, { onConflict: "agent_id,place_id", ignoreDuplicates: true });
