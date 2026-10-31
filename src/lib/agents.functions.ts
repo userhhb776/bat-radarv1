@@ -29,10 +29,16 @@ export const saveAgent = createServerFn({ method: "POST" })
     const row: any = { ...rest, user_id: context.userId, training_phone: admin ? "5568992316302" : "" };
     if (ai_key && !ai_key.startsWith("••")) row["ai_key"] = ai_key;
     if (data.ai_provider === "native") row["ai_key"] = null;
+    let wasTraining = false;
+    if (id) { const { data: prev } = await context.supabase.from("agents").select("training_mode,active").eq("id", id).single(); wasTraining = !!(prev?.training_mode && prev?.active); }
     const q = id ? context.supabase.from("agents").update(row).eq("id", id).select("id").single() : context.supabase.from("agents").insert(row).select("id").single();
     const { data: saved, error } = await q;
     if (error) throw new Error(error.message);
     if (data.instance) await (await import("@/lib/wa-inbound.server")).registerInbound(data.instance).catch(() => false);
+    if (data.instance && data.training_mode && data.active && !wasTraining && row.training_phone) {
+      const { evoSend } = await import("@/lib/evolution.server");
+      await evoSend(data.instance, row.training_phone, [`Opa Antonio, aqui é o ${data.name}. Modo treinamento ligado ✅ Pode me mandar ordens ou me ensinar como falar com os clientes por aqui.`]).catch((e) => console.error("treino", e));
+    }
     return { id: saved.id };
   });
 
