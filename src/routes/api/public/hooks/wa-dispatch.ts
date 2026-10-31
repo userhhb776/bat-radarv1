@@ -174,6 +174,10 @@ export const Route = createFileRoute("/api/public/hooks/wa-dispatch")({
             }
           }
         } catch { /* a rodada fixa de 18 min continua valendo */ }
+        try {
+          const { processAgentQueue } = await import("@/lib/agents.server");
+          report.push(`agentes ${await processAgentQueue(supabaseAdmin as any)}`);
+        } catch (e) { console.error("agent queue", e); }
         return Response.json({ ok: true, report });
       },
     },
