@@ -252,9 +252,9 @@ function Audios({ id, audios }: { id: string; audios: any[] }) {
   const [trigger, setTrigger] = useState("");
   const [busy, setBusy] = useState(false);
   const [rec, setRec] = useState<MediaRecorder | null>(null);
-  async function upload(blob: Blob) {
-    if (!title.trim()) return toast.error("Dê um nome ao áudio.");
-    if (blob.size > 1_400_000) return toast.error("Áudio muito grande (máx ~1 minuto).");
+  async function upload(blob: Blob): Promise<void> {
+    if (!title.trim()) { toast.error("Dê um nome ao áudio."); return; }
+    if (blob.size > 1_400_000) { toast.error("Áudio muito grande (máx ~1 minuto)."); return; }
     setBusy(true);
     try {
       const b64 = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] ?? ""); r.readAsDataURL(blob); });
