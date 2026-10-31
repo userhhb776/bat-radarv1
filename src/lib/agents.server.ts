@@ -6,7 +6,10 @@ export type Agent = {
   id: string; user_id: string; name: string; mission: string; offer: string; rules: string; ideal_client: string;
   learned: string; instance: string; ai_provider: string; ai_key: string | null; model: string;
   active: boolean; auto_reply: boolean; training_mode: boolean; training_phone: string;
+  context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner;
 };
+export type Step = { title: string; goal: string; message: string };
+export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean };
 
 type Tool = { name: string; description: string; properties: Record<string, unknown>; required?: string[] };
 
@@ -23,10 +26,12 @@ const PANEL_TOOLS: Tool[] = [
   { name: "conversa_com", description: "Mostra as mensagens trocadas com um cliente (busca por nome ou telefone).", properties: { busca: { type: "string" } }, required: ["busca"] },
   { name: "conversas_recentes", description: "Lista os últimos clientes que falaram com o agente e quais merecem atenção.", properties: {} },
   { name: "aprender", description: "Grava uma nova regra/preferência do dono na memória permanente do agente.", properties: { regra: { type: "string" } }, required: ["regra"] },
+  { name: "minerar_agente", description: "Minera empresas para a carteira PRÓPRIA deste agente (separada dos leads do dono) e, se configurado, agenda a abordagem.", properties: { nicho: { type: "string" }, cidade: { type: "string" }, limite: { type: "number" } } },
   { name: "enviar_mensagem", description: "Envia uma mensagem de WhatsApp para um telefone pelo número do agente.", properties: { telefone: { type: "string" }, texto: { type: "string" } }, required: ["telefone", "texto"] },
 ];
 
 const CLIENT_TOOLS: Tool[] = [
+  { name: "enviar_audio", description: "Envia um dos áudios gravados pelo dono, quando o gatilho dele combina com o momento da conversa. Use no lugar de explicar por texto.", properties: { audio_id: { type: "string" } }, required: ["audio_id"] },
   { name: "avisar_dono", description: "Avisa o dono que este cliente está quente / quer fechar / pediu humano.", properties: { motivo: { type: "string" } }, required: ["motivo"] },
 ];
 
@@ -36,8 +41,21 @@ MISSÃO: ${a.mission || "prospectar e conversar com empresas"}
 O QUE VENDE (adapte-se, não é sempre site): ${a.offer || "pergunte ao dono"}
 CLIENTE IDEAL: ${a.ideal_client || "não definido"}
 REGRAS RÍGIDAS DO DONO (siga sempre): ${a.rules || "nenhuma"}
-APRENDIZADOS: ${a.learned || "nenhum"}
+CONTEXTO DO NEGÓCIO: ${a.context || "—"}
+COMO FALAR: ${a.style || "como gente, curto, natural"}
+ROTEIRO DE VENDA (siga as etapas em ordem, sem pular):
+${stepsText(a)}
+APRENDIZADOS (inclui estudo de conversas reais do dono — imite o jeito dele): ${a.learned || "nenhum"}
 Hoje: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Rio_Branco" })}.`;
+}
+
+function stepsText(a: Agent) {
+  const st = Array.isArray(a.script_steps) ? a.script_steps : [];
+  return st.length ? st.map((x, i) => `${i + 1}. ${x.title}${x.goal ? ` — objetivo: ${x.goal}` : ""}${x.message ? `\n   modelo: ${x.message}` : ""}`).join("\n") : "(sem roteiro: conduza curiosidade → entender a dor → oferta → passar pro dono)";
+}
+
+export async function logEvent(sb: SupabaseClient, a: { id: string; user_id: string }, kind: string, text: string) {
+  await sb.from("agent_events").insert({ user_id: a.user_id, agent_id: a.id, kind, text: text.slice(0, 500) });
 }
 
 async function scriptsTone(sb: SupabaseClient, userId: string) {
@@ -89,6 +107,7 @@ async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<s
     await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone: digits(String(p["telefone"])), direction: "out", body: String(p["texto"]) });
     return { ok: true };
   }
+  if (name === "minerar_agente") return mineForAgent(sb, a, { niche: p["nicho"], city: p["cidade"], limit: p["limite"] });
   const { runAction } = await import("@/lib/jarvis.server");
   return runAction(sb, a.user_id, name, p, origin);
 }
@@ -114,29 +133,137 @@ Você está falando com o SEU DONO (Antonio). Continue a conversa a partir do hi
   return { reply: "Executei várias etapas mas não concluí. Pode detalhar?", actions };
 }
 
-/** Resposta a um cliente no WhatsApp, seguindo o treinamento. Retorna o texto e se é lead quente. */
+/** Resposta a um cliente no WhatsApp, seguindo roteiro, estilo e áudios. */
 export async function agentClientReply(sb: SupabaseClient, a: Agent, fallbackKey: string, phone: string, contactName: string) {
-  const { data } = await sb.from("agent_messages").select("direction,body").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(20);
+  const { data } = await sb.from("agent_messages").select("direction,body").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(24);
   const hist = (data ?? []).reverse().map((m: any) => ({ role: m.direction === "in" ? "user" : "assistant", content: m.body }));
+  const outs = hist.filter((h) => h.role === "assistant").length;
+  const { data: auds } = await sb.from("agent_audios").select("id,title,trigger").eq("agent_id", a.id);
+  const audios = (auds ?? []) as Array<{ id: string; title: string; trigger: string }>;
   const tone = await scriptsTone(sb, a.user_id);
   const sys = `${brief(a)}
-Você está no WhatsApp com ${contactName || "um cliente"}, como se fosse o próprio Antonio digitando no celular.
+Você está no WhatsApp com ${contactName || "um cliente"}, como se fosse o próprio Antonio digitando no celular. Já foram ${outs} mensagens suas nesta conversa — descubra em que etapa do roteiro vocês estão e avance só uma etapa por vez.
 JEITO DE FALAR (obrigatório):
-- 1 a 2 frases curtas, no máximo ~200 caracteres. Português falado do Brasil ("opa", "show", "tranquilo", "massa").
-- Responda exatamente o que o cliente perguntou, com algo concreto, e termine com UMA pergunta simples quando fizer sentido.
-- Nunca se reapresente nem repita a abertura se já houve conversa. Leia o histórico e continue dele.
-- PROIBIDO: dizer "BatRadar", "sou um assistente/IA", "presença online", "visibilidade online", "soluções", "alavancar", "transformação digital", listas, emojis em excesso, textos de propaganda.
+- Mensagens curtas como no celular. Se precisar de mais de uma ideia, separe em até 3 balões usando uma linha em branco entre eles.
+- Português falado do Brasil, informal na medida, sem formalidade de e-mail. Pode errar levemente a pontuação, sem exagero.
+- Responda exatamente o que perguntaram e termine com no máximo UMA pergunta.
+- Nunca se reapresente nem repita a abertura. Continue do histórico.
+- PROIBIDO: "BatRadar", dizer que é assistente/IA/robô, "presença online", "visibilidade", "soluções", "alavancar", "transformação digital", listas com marcadores, textos de propaganda, emojis em toda frase.
 - Não invente preço, prazo ou desconto; se perguntarem, diga que confirma e chame avisar_dono.
-${tone ? `TOM DOS SCRIPTS DO DONO (imite esse estilo, não copie literal):\n${tone}` : ""}
-Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono e responda algo curto e natural.`;
+${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; aí responda com texto vazio ou bem curto):\n${audios.map((x) => `- id ${x.id}: "${x.title}" — enviar quando: ${x.trigger || x.title}`).join("\n")}` : ""}
+${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
+Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono.`;
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
-  let hot = false; let reason = "";
+  let hot = false; let reason = ""; let audioId = "";
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
-    if (!calls.length) return { reply: (m.content ?? "").trim(), hot, reason };
+    if (!calls.length) return { replies: splitBubbles(m.content ?? ""), hot, reason, audioId };
     convo.push({ role: "assistant", content: m.content ?? "", tool_calls: calls });
-    for (const c of calls) { hot = true; reason = String(c.function.arguments?.["motivo"] ?? ""); convo.push({ role: "tool", tool_name: c.function.name, content: "{\"ok\":true}" }); }
+    for (const c of calls) {
+      if (c.function.name === "enviar_audio") { const id = String(c.function.arguments?.["audio_id"] ?? ""); if (audios.some((x) => x.id === id)) audioId = id; }
+      else { hot = true; reason = String(c.function.arguments?.["motivo"] ?? ""); }
+      convo.push({ role: "tool", tool_name: c.function.name, content: "{\"ok\":true}" });
+    }
   }
-  return { reply: "", hot, reason };
+  return { replies: [] as string[], hot, reason, audioId };
+}
+
+export function splitBubbles(t: string) {
+  return t.trim().split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).slice(0, 3);
+}
+
+const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
+export function paceDelayMs(pace: string | undefined, rnd = Math.random()) {
+  const [lo, hi] = PACE[pace ?? ""] ?? PACE["equilibrado"]!;
+  return Math.round((lo + (hi - lo) * rnd) * 1000);
+}
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Fluxo humano: espera "lendo", junta mensagens seguidas do cliente, responde em balões/áudio. */
+export async function humanReply(sb: SupabaseClient, a: Agent, key: string, instance: string, phone: string, name: string, inboundId: string) {
+  const { data: paused } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).eq("phone", phone).maybeSingle();
+  if (paused) return { skipped: "pausado" };
+  await sleep(paceDelayMs(a.pace));
+  const { data: last } = await sb.from("agent_messages").select("id,direction,manual").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
+  const r = await agentClientReply(sb, a, key, phone, name);
+  const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
+  if (r.replies.length) {
+    await evoSend(instance, phone, r.replies);
+    for (const b of r.replies) await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: b, hot: r.hot });
+  }
+  if (r.audioId) {
+    const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", r.audioId).single();
+    if (au) {
+      await evoSendAudio(instance, phone, (au as any).data, 3000 + Math.random() * 5000);
+      await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: `🎤 [áudio: ${(au as any).title}]`, hot: r.hot });
+    }
+  }
+  await logEvent(sb, a, "resposta", `Respondeu ${name || phone}${r.audioId ? " com áudio" : ""}`);
+  if (r.hot) await sb.from("agent_leads").update({ status: "quente" }).eq("agent_id", a.id).like("phone", `%${phone.slice(-8)}%`);
+  else await sb.from("agent_leads").update({ status: "respondeu" }).eq("agent_id", a.id).like("phone", `%${phone.slice(-8)}%`).in("status", ["abordado", "novo"]);
+  return r;
+}
+
+export function fillTemplate(t: string, l: { name?: string | null; city?: string | null; niche?: string | null }) {
+  const first = (l.name ?? "").split(/[-|–]/)[0]!.trim();
+  return t.replace(/\{nome\}/gi, first).replace(/\{cidade\}/gi, l.city ?? "").replace(/\{nicho\}/gi, l.niche ?? "");
+}
+
+/** Minerador próprio do agente: carteira separada dos leads do dono. */
+export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: unknown; city?: unknown; limit?: unknown } = {}) {
+  const m = (a.miner ?? {}) as Miner;
+  const niche = String(o.niche || m.niche || "").trim(), city = String(o.city || m.city || "").trim();
+  if (!niche || !city) return { erro: "Configure nicho e cidade no minerador do agente." };
+  const limit = Math.max(1, Math.min(60, Number(o.limit) || m.daily || 15));
+  await logEvent(sb, a, "minerando", `Procurando ${niche} em ${city}…`);
+  const { places } = await import("@/lib/jarvis.server");
+  let found = (await places(niche, city, m.nota_minima ?? 0)).filter((x) => x.phone);
+  if (m.sem_site) found = found.filter((x) => !x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website));
+  const ids = found.map((x) => x.place_id);
+  const [{ data: mine }, { data: owner }] = await Promise.all([
+    sb.from("agent_leads").select("place_id").eq("agent_id", a.id).in("place_id", ids),
+    sb.from("leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
+  ]);
+  const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
+  const fresh = found.filter((x) => !skip.has(x.place_id)).slice(0, limit);
+  const steps = Array.isArray(a.script_steps) ? a.script_steps : [];
+  const approach = !!m.auto_approach && !!a.instance && !!steps[0]?.message;
+  let t = Date.now() + 2 * 60000;
+  const rows = fresh.map((x) => { t += (6 + Math.random() * 9) * 60000; return { ...x, user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
+  if (rows.length) await sb.from("agent_leads").insert(rows);
+  await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche}, ${city})${approach ? " e agendou a abordagem" : ""}`);
+  return { novas: rows.length, abordagem_agendada: approach };
+}
+
+const inWindow = (d = new Date()) => { const h = (d.getUTCHours() + 19) % 24; const wd = new Date(d.getTime() - 5 * 3600000).getUTCDay(); return h >= 8 && h < 18 && wd !== 0; };
+
+/** Envia as abordagens agendadas dos agentes (chamado pelo agendador). */
+export async function processAgentQueue(sb: SupabaseClient) {
+  if (!inWindow()) return 0;
+  const { data: due } = await sb.from("agent_leads").select("*").eq("status", "fila").lte("send_at", new Date().toISOString()).order("send_at").limit(8);
+  let sent = 0;
+  for (const l of (due ?? []) as any[]) {
+    const { data: got } = await sb.from("agent_leads").update({ status: "enviando" }).eq("id", l.id).eq("status", "fila").select("id");
+    if (!got?.length) continue;
+    const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
+    const ag = a as any as Agent | null;
+    const step = ag?.script_steps?.[0]?.message;
+    if (!ag || !ag.active || !ag.instance || !step) { await sb.from("agent_leads").update({ status: "novo", send_at: null }).eq("id", l.id); continue; }
+    try {
+      const { evoSend } = await import("@/lib/evolution.server");
+      const texts = splitBubbles(fillTemplate(step, l));
+      await evoSend(ag.instance, l.phone, texts);
+      const phone = digits(l.phone);
+      for (const b of texts) await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: b });
+      await sb.from("agent_leads").update({ status: "abordado" }).eq("id", l.id);
+      await logEvent(sb, ag, "abordou", `Mandou abordagem para ${l.name}`);
+      sent++;
+    } catch (e) {
+      await sb.from("agent_leads").update({ status: "erro" }).eq("id", l.id);
+      await logEvent(sb, ag, "erro", `Falhou com ${l.name}: ${e instanceof Error ? e.message : "erro"}`);
+    }
+  }
+  return sent;
 }
