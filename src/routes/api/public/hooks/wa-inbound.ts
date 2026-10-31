@@ -56,16 +56,27 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               const origin = new URL(request.url).origin;
               const phone = phones[0]!;
               const trainer = agents.find((a) => a.training_mode && a.training_phone && match(a.training_phone));
-              if (trainer) {
+              if (trainer && /^\/dono12\b/i.test(text)) {
+                // /dono12 = ordem do dono nos bastidores; sem o comando, o agente trata você como cliente (simulação)
+                const order = text.replace(/^\/dono12\b/i, "").trim() || "Status rápido.";
                 const tp = "treino:" + trainer.training_phone;
                 const { data: past } = await sb.from("agent_messages").select("direction,body").eq("agent_id", trainer.id).eq("phone", tp).order("created_at", { ascending: false }).limit(16);
                 const hist = (past ?? []).reverse().map((m: any) => ({ role: m.direction === "in" ? "user" : "assistant", content: m.body }));
-                await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone: tp, contact_name: "Treino (você)", direction: "in", body: text.slice(0, 4000) });
-                const r = await agentOwnerChat(sb, trainer as any, key, [...hist, { role: "user", content: text }], origin);
+                const { data: sim } = await sb.from("agent_messages").select("direction,body").eq("agent_id", trainer.id).eq("phone", phone).order("created_at", { ascending: false }).limit(12);
+                const simTxt = (sim ?? []).reverse().map((m: any) => `${m.direction === "in" ? "Cliente(simulado)" : "Agente"}: ${m.body}`).join("\n");
+                const full = `${order}\n\n(Conversa de simulação recente, para contexto:\n${simTxt || "nenhuma"})\nSe for uma correção de comportamento, grave com "aprender".`;
+                await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone: tp, contact_name: "Treino (você)", direction: "in", body: order.slice(0, 4000) });
+                const r = await agentOwnerChat(sb, trainer as any, key, [...hist, { role: "user", content: full }], origin);
                 if (r.reply) {
-                  await evoSend(instance, phone, [r.reply]);
+                  await evoSend(instance, phone, ["🛠️ " + r.reply]);
                   await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone: tp, contact_name: "Treino (você)", direction: "out", body: r.reply.slice(0, 4000) });
                 }
+                continue;
+              }
+              if (trainer) {
+                const { humanReply } = await import("@/lib/agents.server");
+                const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000) }).select("id").single();
+                await humanReply(sb, trainer as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
                 continue;
               }
               const a = agents.find((x) => x.auto_reply) ?? agents[0];

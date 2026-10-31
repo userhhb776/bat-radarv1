@@ -21,7 +21,7 @@ export async function places(niche: string, city: string, minRating: number) {
   const res = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, {
     method: "POST",
     headers: { Authorization: `Bearer ${lovable}`, "X-Connection-Api-Key": maps, "Content-Type": "application/json",
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.googleMapsUri,places.businessStatus" },
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.googleMapsUri,places.businessStatus,places.photos.name" },
     body: JSON.stringify({ textQuery: `${niche} em ${city}`, pageSize: 20, languageCode: "pt-BR", regionCode: "BR", ...(minRating > 0 ? { minRating } : {}) }),
   });
   if (!res.ok) throw new Error(`Google Maps respondeu ${res.status}`);
@@ -31,6 +31,8 @@ export async function places(niche: string, city: string, minRating: number) {
     address: (p["formattedAddress"] ?? null) as string | null, website: (p["websiteUri"] ?? null) as string | null,
     rating: typeof p["rating"] === "number" ? p["rating"] : null, reviews_count: typeof p["userRatingCount"] === "number" ? p["userRatingCount"] : 0,
     maps_url: (p["googleMapsUri"] ?? null) as string | null, niche, city,
+    photos: Array.isArray(p["photos"]) ? p["photos"].length : 0,
+    open: p["businessStatus"] !== "CLOSED_TEMPORARILY",
   }));
 }
 type Place = Awaited<ReturnType<typeof places>>[number];
@@ -38,6 +40,7 @@ const noSite = (w: string | null) => !w || /instagram\.com|wa\.me|whatsapp\.com|
 
 async function saveToBlock(sb: SupabaseClient, userId: string, blockId: string, rows: Place[]) {
   if (!rows.length) return 0;
+  rows = rows.map(({ photos: _p, open: _o, ...r }: any) => r) as Place[];
   await sb.from("leads").upsert(rows.map((r) => ({ ...r, user_id: userId })), { onConflict: "user_id,place_id", ignoreDuplicates: true });
   const { error } = await sb.from("block_items").upsert(rows.map((r) => ({ ...r, block_id: blockId, user_id: userId })), { onConflict: "block_id,place_id", ignoreDuplicates: true });
   if (error) throw new Error(error.message);

@@ -40,7 +40,9 @@ export const saveAgentDetails = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({
     id: z.string().uuid(), context: z.string().max(6000), style: z.string().max(4000), pace: z.enum(["rapido", "equilibrado", "calmo"]),
     script_steps: z.array(step).max(10),
-    miner: z.object({ niche: z.string().max(80).optional(), city: z.string().max(80).optional(), sem_site: z.boolean().optional(), nota_minima: z.number().min(0).max(5).optional(), daily: z.number().int().min(1).max(60).optional(), auto: z.boolean().optional(), auto_approach: z.boolean().optional() }),
+    miner: z.object({ niche: z.string().max(80).optional(), city: z.string().max(80).optional(), sem_site: z.boolean().optional(), nota_minima: z.number().min(0).max(5).optional(), daily: z.number().int().min(1).max(60).optional(), auto: z.boolean().optional(), auto_approach: z.boolean().optional(),
+      min_reviews: z.number().int().min(0).max(500).optional(), min_photos: z.number().int().min(0).max(10).optional(), web_scan: z.boolean().optional(),
+      hora_inicio: z.number().int().min(0).max(23).optional(), hora_fim: z.number().int().min(1).max(24).optional(), limite_dia: z.number().int().min(1).max(200).optional() }),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
