@@ -31,6 +31,7 @@ import { Route as AuthenticatedPapaLeadCampanhasRouteImport } from './routes/_au
 import { Route as AuthenticatedPapaLeadMensagensRouteImport } from './routes/_authenticated/papa-lead-mensagens'
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
 import { Route as AuthenticatedScriptsRouteImport } from './routes/_authenticated/scripts'
+import { Route as AuthenticatedSistemaRouteImport } from './routes/_authenticated/sistema'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as ApiPublicJarvisRouteImport } from './routes/api/public/jarvis'
 import { Route as ApiPublicHooksAccessRequestRouteImport } from './routes/api/public/hooks/access-request'
@@ -153,6 +154,11 @@ const AuthenticatedScriptsRoute = AuthenticatedScriptsRouteImport.update({
   path: '/scripts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSistemaRoute = AuthenticatedSistemaRouteImport.update({
+  id: '/sistema',
+  path: '/sistema',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
+  '/sistema': typeof AuthenticatedSistemaRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
+  '/sistema': typeof AuthenticatedSistemaRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/scripts': typeof AuthenticatedScriptsRoute
+  '/_authenticated/sistema': typeof AuthenticatedSistemaRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/papa-lead-mensagens'
     | '/pipeline'
     | '/scripts'
+    | '/sistema'
     | '/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/papa-lead-mensagens'
     | '/pipeline'
     | '/scripts'
+    | '/sistema'
     | '/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -380,6 +391,7 @@ export interface FileRouteTypes {
     | '/_authenticated/papa-lead-mensagens'
     | '/_authenticated/pipeline'
     | '/_authenticated/scripts'
+    | '/_authenticated/sistema'
     | '/_authenticated/whatsapp'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
@@ -559,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedScriptsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sistema': {
+      id: '/_authenticated/sistema'
+      path: '/sistema'
+      fullPath: '/sistema'
+      preLoaderRoute: typeof AuthenticatedSistemaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
       path: '/whatsapp'
@@ -638,6 +657,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPapaLeadMensagensRoute: typeof AuthenticatedPapaLeadMensagensRoute
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedScriptsRoute: typeof AuthenticatedScriptsRoute
+  AuthenticatedSistemaRoute: typeof AuthenticatedSistemaRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
 }
 
@@ -661,6 +681,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPapaLeadMensagensRoute: AuthenticatedPapaLeadMensagensRoute,
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedScriptsRoute: AuthenticatedScriptsRoute,
+  AuthenticatedSistemaRoute: AuthenticatedSistemaRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
 }
 
