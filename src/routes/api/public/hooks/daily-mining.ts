@@ -28,6 +28,11 @@ export const Route = createFileRoute("/api/public/hooks/daily-mining")({
             report[u.id] = "erro";
           }
         }
+        try {
+          const { mineForAgent } = await import("@/lib/agents.server");
+          const { data: ags } = await supabaseAdmin.from("agents").select("*").eq("active", true);
+          for (const a of (ags ?? []) as any[]) if (a.miner?.auto) await mineForAgent(supabaseAdmin as any, a).catch((e) => console.error("agent mine", e));
+        } catch (e) { console.error(e); }
         return Response.json({ ok: true, report });
       },
     },

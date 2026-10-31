@@ -52,3 +52,18 @@ export async function evoGet(path: string, timeoutMs = 60000): Promise<unknown> 
   if (!res.ok) { console.error("evolution", path, res.status, text.slice(0, 300)); throw new Error(`Servidor do WhatsApp respondeu ${res.status}.`); }
   try { return JSON.parse(text); } catch { return null; }
 }
+
+/** Envia áudio como nota de voz gravada na hora (microfone verde), com "gravando..." antes. */
+export async function evoSendAudio(instance: string, phone: string, base64: string, recordMs = 4000) {
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
+  if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
+  const number = normalizeBR(phone);
+  if (!number) throw new Error("Telefone inválido.");
+  const res = await fetch(`${base}/message/sendWhatsAppAudio/${encodeURIComponent(instance)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: key },
+    body: JSON.stringify({ number, audio: base64, encoding: true, delay: Math.min(15000, recordMs) }),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!res.ok) throw new Error(`Servidor do WhatsApp respondeu ${res.status}: ${(await res.text()).slice(0, 200)}`);
+}

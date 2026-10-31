@@ -33,3 +33,6 @@
 - WhatsApp instances without the app's br<id>- prefix (created directly on the Evolution server) are usable only by admin accounts, via src/lib/wa-owner.ts; app-created ones stay owner-only.
 - The in-panel assistant "Argos" (/argos) runs on Ollama Cloud (OLLAMA_API_KEY) with tool calls mapped to jarvis.server runAction using the user RLS client; this keeps one action layer for the assistant and the external Jarvis API.
 - Sales agents (/agentes) share one brain in src/lib/agents.server.ts used by the panel chat and the wa-inbound webhook (owner training via WhatsApp, auto-replies, hot-lead alerts); conversations persist in agent_messages so the owner can query them later.
+- Each agent has its own cockpit (/agentes/$id) and its own lead wallet (agent_leads), separate from the owner's leads; approaches queue in agent_leads (status fila) and are sent by the wa-dispatch cron, keeping one dispatcher.
+- Agent client replies go through humanReply (pace wait, debounce on newer inbound, bubbles, optional voice note); manual sends pause the AI per contact via agent_pauses.
+- Conversation prints are read by the AI gateway and only the extracted text is stored in agents.learned; images are never persisted, to save database space.

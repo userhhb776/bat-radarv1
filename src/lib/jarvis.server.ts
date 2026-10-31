@@ -15,7 +15,7 @@ export async function hashToken(t: string) {
   return createHash("sha256").update(t, "utf8").digest("hex");
 }
 
-async function places(niche: string, city: string, minRating: number) {
+export async function places(niche: string, city: string, minRating: number) {
   const lovable = process.env["LOVABLE_API_KEY"]; const maps = process.env["GOOGLE_MAPS_API_KEY"];
   if (!lovable || !maps) throw new Error("Google Maps não configurado.");
   const res = await fetch(`${GATEWAY_URL}/places/v1/places:searchText`, {

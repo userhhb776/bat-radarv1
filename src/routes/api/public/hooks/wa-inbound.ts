@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
             if (text && agents?.length) {
               const sb = supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient;
               const { evoSend } = await import("@/lib/evolution.server");
-              const { agentOwnerChat, agentClientReply } = await import("@/lib/agents.server");
+              const { agentOwnerChat } = await import("@/lib/agents.server");
               const key = (await (await import("@/lib/service-config.server")).getOllamaKey()) ?? "";
               const origin = new URL(request.url).origin;
               const phone = phones[0]!;
@@ -57,12 +57,10 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               const a = agents.find((x) => x.auto_reply);
               if (a) {
                 const name = String(it["pushName"] ?? "");
-                await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "in", body: text.slice(0, 4000) });
-                const r = await agentClientReply(sb, a as any, key, phone, name);
-                if (r.reply) {
-                  await evoSend(instance, phone, [r.reply]);
-                  await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: r.reply, hot: r.hot });
-                }
+                const { data: inb } = await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "in", body: text.slice(0, 4000) }).select("id").single();
+                const { humanReply } = await import("@/lib/agents.server");
+                const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any)?.id ?? "");
+                if (r.skipped) continue;
                 if (r.hot) {
                   await notifyUser(supabaseAdmin, a.user_id, `🔥 ${a.name}: cliente quente`, `${name || phone}: ${r.reason || "quer avançar"}`, "/agentes").catch(() => 0);
                   if (a.training_phone) await evoSend(instance, a.training_phone, [`🔥 ${name || phone} (${phone}) está quente: ${r.reason}`]).catch(() => 0);

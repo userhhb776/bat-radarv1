@@ -44,6 +44,150 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_audios: {
+        Row: {
+          agent_id: string
+          created_at: string
+          data: string
+          id: string
+          mime: string
+          title: string
+          trigger: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          data: string
+          id?: string
+          mime?: string
+          title: string
+          trigger?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          mime?: string
+          title?: string
+          trigger?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_audios_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_events: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          kind: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_leads: {
+        Row: {
+          address: string | null
+          agent_id: string
+          city: string
+          created_at: string
+          id: string
+          maps_url: string | null
+          name: string
+          niche: string
+          phone: string | null
+          place_id: string
+          rating: number | null
+          reviews_count: number
+          send_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          agent_id: string
+          city?: string
+          created_at?: string
+          id?: string
+          maps_url?: string | null
+          name: string
+          niche?: string
+          phone?: string | null
+          place_id: string
+          rating?: number | null
+          reviews_count?: number
+          send_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          agent_id?: string
+          city?: string
+          created_at?: string
+          id?: string
+          maps_url?: string | null
+          name?: string
+          niche?: string
+          phone?: string | null
+          place_id?: string
+          rating?: number | null
+          reviews_count?: number
+          send_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_leads_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_messages: {
         Row: {
           agent_id: string
@@ -53,6 +197,7 @@ export type Database = {
           direction: string
           hot: boolean
           id: string
+          manual: boolean
           phone: string
           user_id: string
         }
@@ -64,6 +209,7 @@ export type Database = {
           direction: string
           hot?: boolean
           id?: string
+          manual?: boolean
           phone: string
           user_id: string
         }
@@ -75,6 +221,7 @@ export type Database = {
           direction?: string
           hot?: boolean
           id?: string
+          manual?: boolean
           phone?: string
           user_id?: string
         }
@@ -88,22 +235,56 @@ export type Database = {
           },
         ]
       }
+      agent_pauses: {
+        Row: {
+          agent_id: string
+          created_at: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_pauses_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           active: boolean
           ai_key: string | null
           ai_provider: string
           auto_reply: boolean
+          context: string
           created_at: string
           id: string
           ideal_client: string
           instance: string
           learned: string
+          miner: Json
           mission: string
           model: string
           name: string
           offer: string
+          pace: string
           rules: string
+          script_steps: Json
+          style: string
           training_mode: boolean
           training_phone: string
           updated_at: string
@@ -114,16 +295,21 @@ export type Database = {
           ai_key?: string | null
           ai_provider?: string
           auto_reply?: boolean
+          context?: string
           created_at?: string
           id?: string
           ideal_client?: string
           instance?: string
           learned?: string
+          miner?: Json
           mission?: string
           model?: string
           name: string
           offer?: string
+          pace?: string
           rules?: string
+          script_steps?: Json
+          style?: string
           training_mode?: boolean
           training_phone?: string
           updated_at?: string
@@ -134,16 +320,21 @@ export type Database = {
           ai_key?: string | null
           ai_provider?: string
           auto_reply?: boolean
+          context?: string
           created_at?: string
           id?: string
           ideal_client?: string
           instance?: string
           learned?: string
+          miner?: Json
           mission?: string
           model?: string
           name?: string
           offer?: string
+          pace?: string
           rules?: string
+          script_steps?: Json
+          style?: string
           training_mode?: boolean
           training_phone?: string
           updated_at?: string
