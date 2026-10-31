@@ -27,6 +27,7 @@ import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/cr
 import { Route as AuthenticatedDiariosRouteImport } from './routes/_authenticated/diarios'
 import { Route as AuthenticatedExternosRouteImport } from './routes/_authenticated/externos'
 import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
+import { Route as AuthenticatedMeuWhatsappRouteImport } from './routes/_authenticated/meu-whatsapp'
 import { Route as AuthenticatedPapaLeadRouteImport } from './routes/_authenticated/papa-lead'
 import { Route as AuthenticatedPapaLeadCampanhasRouteImport } from './routes/_authenticated/papa-lead-campanhas'
 import { Route as AuthenticatedPapaLeadMensagensRouteImport } from './routes/_authenticated/papa-lead-mensagens'
@@ -135,6 +136,12 @@ const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
   path: '/manual',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeuWhatsappRoute =
+  AuthenticatedMeuWhatsappRouteImport.update({
+    id: '/meu-whatsapp',
+    path: '/meu-whatsapp',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPapaLeadRoute = AuthenticatedPapaLeadRouteImport.update({
   id: '/papa-lead',
   path: '/papa-lead',
@@ -240,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
   '/manual': typeof AuthenticatedManualRoute
+  '/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
   '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
@@ -275,6 +283,7 @@ export interface FileRoutesByTo {
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
   '/manual': typeof AuthenticatedManualRoute
+  '/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
   '/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
@@ -312,6 +321,7 @@ export interface FileRoutesById {
   '/_authenticated/diarios': typeof AuthenticatedDiariosRoute
   '/_authenticated/externos': typeof AuthenticatedExternosRoute
   '/_authenticated/manual': typeof AuthenticatedManualRoute
+  '/_authenticated/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/_authenticated/papa-lead': typeof AuthenticatedPapaLeadRoute
   '/_authenticated/papa-lead-campanhas': typeof AuthenticatedPapaLeadCampanhasRoute
   '/_authenticated/papa-lead-mensagens': typeof AuthenticatedPapaLeadMensagensRoute
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/diarios'
     | '/externos'
     | '/manual'
+    | '/meu-whatsapp'
     | '/papa-lead'
     | '/papa-lead-campanhas'
     | '/papa-lead-mensagens'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/diarios'
     | '/externos'
     | '/manual'
+    | '/meu-whatsapp'
     | '/papa-lead'
     | '/papa-lead-campanhas'
     | '/papa-lead-mensagens'
@@ -420,6 +432,7 @@ export interface FileRouteTypes {
     | '/_authenticated/diarios'
     | '/_authenticated/externos'
     | '/_authenticated/manual'
+    | '/_authenticated/meu-whatsapp'
     | '/_authenticated/papa-lead'
     | '/_authenticated/papa-lead-campanhas'
     | '/_authenticated/papa-lead-mensagens'
@@ -579,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManualRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/meu-whatsapp': {
+      id: '/_authenticated/meu-whatsapp'
+      path: '/meu-whatsapp'
+      fullPath: '/meu-whatsapp'
+      preLoaderRoute: typeof AuthenticatedMeuWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/papa-lead': {
       id: '/_authenticated/papa-lead'
       path: '/papa-lead'
@@ -710,6 +730,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDiariosRoute: typeof AuthenticatedDiariosRoute
   AuthenticatedExternosRoute: typeof AuthenticatedExternosRoute
   AuthenticatedManualRoute: typeof AuthenticatedManualRoute
+  AuthenticatedMeuWhatsappRoute: typeof AuthenticatedMeuWhatsappRoute
   AuthenticatedPapaLeadRoute: typeof AuthenticatedPapaLeadRoute
   AuthenticatedPapaLeadCampanhasRoute: typeof AuthenticatedPapaLeadCampanhasRoute
   AuthenticatedPapaLeadMensagensRoute: typeof AuthenticatedPapaLeadMensagensRoute
@@ -737,6 +758,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDiariosRoute: AuthenticatedDiariosRoute,
   AuthenticatedExternosRoute: AuthenticatedExternosRoute,
   AuthenticatedManualRoute: AuthenticatedManualRoute,
+  AuthenticatedMeuWhatsappRoute: AuthenticatedMeuWhatsappRoute,
   AuthenticatedPapaLeadRoute: AuthenticatedPapaLeadRoute,
   AuthenticatedPapaLeadCampanhasRoute: AuthenticatedPapaLeadCampanhasRoute,
   AuthenticatedPapaLeadMensagensRoute: AuthenticatedPapaLeadMensagensRoute,
