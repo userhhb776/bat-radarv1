@@ -63,3 +63,30 @@ export const talkToAgent = createServerFn({ method: "POST" })
     const { getRequest } = await import("@tanstack/react-start/server");
     return agentOwnerChat(context.supabase as any, a as any, key ?? "", data.messages, new URL(getRequest().url).origin);
   });
+
+export const designAgent = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({
+    messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(6000) })).min(1).max(30),
+    current: z.record(z.string(), z.any()).optional(),
+  }).parse(d))
+  .handler(async ({ data }) => {
+    const key = await (await import("@/lib/service-config.server")).getOllamaKey();
+    if (!key) throw new Error("IA não configurada.");
+    const system = `Você monta agentes de vendas do BatRadar conversando com o dono, em pt-BR, curto e direto. A cada resposta devolva SOMENTE um JSON: {"reply":"sua fala curta (pergunte o que faltar)","agent":{"name":"","mission":"","offer":"","ideal_client":"","rules":"","auto_reply":true}}. Preencha o agente com tudo que já sabe, mantendo o que já existe e aplicando as mudanças pedidas. As regras devem fazer o agente falar como gente, nunca como robô. Agente atual: ${JSON.stringify(data.current ?? {})}`;
+    const res = await fetch("https://ollama.com/api/chat", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-oss:120b", stream: false, format: "json", messages: [{ role: "system", content: system }, ...data.messages] }),
+    });
+    if (!res.ok) throw new Error(res.status === 429 ? "Limite da IA atingido." : "IA indisponível, tente de novo.");
+    const j: any = await res.json();
+    let out: any = {};
+    try { out = JSON.parse(j?.message?.content ?? "{}"); } catch { /* ignore */ }
+    const a = out.agent ?? {};
+    const s = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
+    return {
+      reply: s(out.reply, 2000) || "Pode me contar mais?",
+      agent: { name: s(a.name, 60), mission: s(a.mission, 3000), offer: s(a.offer, 3000), ideal_client: s(a.ideal_client, 3000), rules: s(a.rules, 6000), auto_reply: a.auto_reply !== false },
+    };
+  });
