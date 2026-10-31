@@ -17,21 +17,17 @@ const groups = [
   { label: "Prospecção", items: [
     { title: "Leads do dia", url: "/diarios", icon: Sunrise },
     { title: "Buscar", url: "/buscar", icon: Search },
-    { title: "Comparar", url: "/comparar", icon: Crosshair },
     { title: "Leads externos", url: "/externos", icon: Inbox },
     { title: "Scripts", url: "/scripts", icon: ScrollText },
   ] },
   { label: "Automação", items: [
     { title: "Bloco de leads", url: "/blocos", icon: Layers },
     { title: "Campanhas", url: "/campanhas", icon: Megaphone },
-    { title: "Agendamentos", url: "/agendamentos", icon: CalendarClock },
     { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
     { title: "Agentes", url: "/agentes", icon: Bot },
-    { title: "Meu WhatsApp", url: "/meu-whatsapp", icon: MessagesSquare },
   ] },
   { label: "Vendas", items: [
     { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
-    { title: "CRM", url: "/crm", icon: Contact },
     { title: "Cotações", url: "/cotacoes", icon: FilePenLine },
   ] },
   { label: "Papa Lead", items: [

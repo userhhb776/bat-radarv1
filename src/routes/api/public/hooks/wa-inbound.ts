@@ -79,7 +79,10 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 await humanReply(sb, trainer as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
                 continue;
               }
-              const a = agents.find((x) => x.auto_reply) ?? agents[0];
+              // escolhe o agente que já conversa com esse contato (tolerante ao 9º dígito)
+              const tail = phone.replace(/\D/g, "").slice(-8);
+              const { data: owner } = await sb.from("agent_messages").select("agent_id").in("agent_id", agents.map((x) => x.id)).like("phone", `%${tail}`).order("created_at", { ascending: false }).limit(1);
+              const a = agents.find((x) => x.id === (owner as any)?.[0]?.agent_id) ?? agents.find((x) => x.auto_reply) ?? agents[0];
               if (a) {
                 const name = String(it["pushName"] ?? "");
                 // grava sempre a mensagem do cliente, mesmo com a IA desligada ou pausada
