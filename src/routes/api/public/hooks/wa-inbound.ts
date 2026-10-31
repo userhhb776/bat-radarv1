@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
         const since = new Date(Date.now() - 30 * 86400000).toISOString();
         for (const it of items) {
           const k = (it?.["key"] ?? {}) as Record<string, unknown>;
-          if (k["fromMe"]) continue;
+          const fromMe = !!k["fromMe"];
           const jids = [k["remoteJid"], k["remoteJidAlt"], k["senderPn"], k["participantAlt"]].map((j) => String(j ?? ""));
           if (jids.some((j) => j.endsWith("@g.us") || j.includes("broadcast"))) continue;
           const phones = jids.filter((j) => j.endsWith("@s.whatsapp.net")).map((j) => j.split("@")[0]!);
@@ -34,6 +34,20 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
             const msg = (it?.["message"] ?? {}) as Record<string, any>;
             const text = String(msg["conversation"] ?? msg["extendedTextMessage"]?.["text"] ?? "").trim();
             const { data: agents } = await supabaseAdmin.from("agents").select("*").eq("instance", instance).eq("active", true);
+            if (fromMe) {
+              // mensagem que você mandou pelo celular: registra na conversa do agente e pausa a IA nesse contato
+              const ag = agents?.find((x) => !x.training_mode || !x.training_phone || !match(x.training_phone));
+              if (text && ag) {
+                const phone = phones[0]!;
+                const since2 = new Date(Date.now() - 180000).toISOString();
+                const { data: dup } = await supabaseAdmin.from("agent_messages").select("id").eq("agent_id", ag.id).eq("phone", phone).eq("direction", "out").eq("body", text.slice(0, 4000)).gte("created_at", since2).limit(1);
+                if (!dup?.length) {
+                  await supabaseAdmin.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: "", direction: "out", body: text.slice(0, 4000), manual: true } as any);
+                  await (supabaseAdmin as any).from("agent_pauses").upsert({ agent_id: ag.id, phone, user_id: ag.user_id });
+                }
+              }
+              continue;
+            }
             if (text && agents?.length) {
               const sb = supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient;
               const { evoSend } = await import("@/lib/evolution.server");
@@ -54,10 +68,12 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 }
                 continue;
               }
-              const a = agents.find((x) => x.auto_reply);
+              const a = agents.find((x) => x.auto_reply) ?? agents[0];
               if (a) {
                 const name = String(it["pushName"] ?? "");
+                // grava sempre a mensagem do cliente, mesmo com a IA desligada ou pausada
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "in", body: text.slice(0, 4000) }).select("id").single();
+                if (!a.auto_reply) continue;
                 const { humanReply } = await import("@/lib/agents.server");
                 const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any)?.id ?? "");
                 if (r.skipped) continue;
@@ -68,6 +84,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               }
             }
           } catch (e) { console.error("agent", e); }
+          if (fromMe) continue;
 
           // BatRadar (campanhas Google e agendamentos)
           const { data: rows } = await supabaseAdmin.from("wa_scheduled").select("id,user_id,lead_id,name,phone,status,campaign_id")
