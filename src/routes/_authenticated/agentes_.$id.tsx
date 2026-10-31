@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, varyMessage, buildBtxPlan } from "@/lib/agent-cockpit.functions";
+import { STATES } from "@/lib/mining-options";
 import { talkToAgent } from "@/lib/agents.functions";
 
 export const Route = createFileRoute("/_authenticated/agentes_/$id")({
@@ -61,7 +62,7 @@ function Cockpit() {
           <TabsContent value="btx"><Btx id={id} a={a} audios={data.audios as any[]} /></TabsContent>
           <TabsContent value="vivo"><Live events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
           <TabsContent value="conversas"><Chats id={id} messages={data.messages as any[]} paused={data.paused as string[]} /></TabsContent>
-          <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} /></TabsContent>
+          <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} events={data.events as any[]} /></TabsContent>
           <TabsContent value="roteiro"><Script id={id} a={a} /></TabsContent>
           <TabsContent value="audios"><Audios id={id} audios={data.audios as any[]} /></TabsContent>
           <TabsContent value="estudo"><Study id={id} learned={a.learned} /></TabsContent>
@@ -151,7 +152,7 @@ function Chats({ id, messages, paused }: { id: string; messages: any[]; paused: 
   );
 }
 
-function Miner({ id, a, leads }: { id: string; a: any; leads: any[] }) {
+function Miner({ id, a, leads, events }: { id: string; a: any; leads: any[]; events: any[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveAgentDetails);
   const run = useServerFn(runAgentMiner);
@@ -166,29 +167,35 @@ function Miner({ id, a, leads }: { id: string; a: any; leads: any[] }) {
   const base = { id, context: a.context ?? "", style: a.style ?? "", pace: a.pace ?? "equilibrado", script_steps: a.script_steps ?? [] };
   const wrap = async (fn: () => Promise<any>, ok: (r: any) => string) => { setBusy(true); try { const r = await fn(); toast.success(ok(r)); qc.invalidateQueries({ queryKey: ["cockpit", id] }); } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); } };
   const visible = leads.filter((l) => l.status !== "movido");
+  const tests = events.filter((e) => e.kind === "teste");
   return (
     <div className="space-y-4">
+      {m.md_teste && (
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border bg-card p-3">
+            <h3 className="mb-2 font-semibold">md-teste: o que ele faria</h3>
+            {!tests.length && <p className="text-xs text-muted-foreground">Clique em "Minerar agora". Nada é enviado.</p>}
+            <ul className="max-h-80 space-y-2 overflow-y-auto text-sm">{tests.map((e, i) => <li key={i} className="rounded bg-muted p-2">{e.text}</li>)}</ul>
+          </div>
+          <div><h3 className="mb-2 font-semibold">Corrija ele aqui</h3><Talk id={id} name={a.name} /></div>
+        </div>
+      )}
       <div className="space-y-3 rounded-lg border bg-card p-3">
-        <h3 className="font-semibold">Minerador próprio</h3>
-        <p className="text-xs text-muted-foreground">As empresas que ele acha ficam só com ele, sem misturar com seus leads. Ele pula empresas que você já tem.</p>
+        <h3 className="font-semibold">Minerador</h3>
+        <p className="text-xs text-muted-foreground">Já vem de fábrica: só empresas sem site (ele varre a internet), abertas, com WhatsApp, boas avaliações e fotos. Fica só com ele, sem misturar com seus leads.</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <Input placeholder="Nicho (ex: academias)" value={m.niche ?? ""} onChange={(e) => setM({ ...m, niche: e.target.value })} />
-          <Input placeholder="Cidade" value={m.city ?? ""} onChange={(e) => setM({ ...m, city: e.target.value })} />
-          <Input type="number" placeholder="Nota mínima" value={m.nota_minima ?? ""} onChange={(e) => setM({ ...m, nota_minima: Number(e.target.value) || 0 })} />
           <Input type="number" placeholder="Quantas por vez" value={m.daily ?? 15} onChange={(e) => setM({ ...m, daily: Math.max(1, Math.min(60, Number(e.target.value) || 15)) })} />
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Input type="number" placeholder="Mín. avaliações" value={m.min_reviews ?? ""} onChange={(e) => setM({ ...m, min_reviews: Math.max(0, Number(e.target.value) || 0) })} />
-          <Input type="number" placeholder="Mín. fotos (máx 10)" value={m.min_photos ?? ""} onChange={(e) => setM({ ...m, min_photos: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} />
-          <Input type="number" placeholder="Abordar a partir de (h)" value={m.hora_inicio ?? 8} onChange={(e) => setM({ ...m, hora_inicio: Math.max(0, Math.min(23, Number(e.target.value) || 0)) })} />
-          <Input type="number" placeholder="Abordar até (h)" value={m.hora_fim ?? 18} onChange={(e) => setM({ ...m, hora_fim: Math.max(1, Math.min(24, Number(e.target.value) || 18)) })} />
-          <Input type="number" placeholder="Máx. abordagens por dia" value={m.limite_dia ?? 30} onChange={(e) => setM({ ...m, limite_dia: Math.max(1, Math.min(200, Number(e.target.value) || 30)) })} />
+        <div>
+          <Label className="text-xs">Estados</Label>
+          <div className="mt-1 flex flex-wrap gap-1">{STATES.map((uf) => { const on = (m.states ?? []).includes(uf); return <button key={uf} type="button" onClick={() => setM({ ...m, states: on ? m.states.filter((x: string) => x !== uf) : [...(m.states ?? []), uf] })} className={`rounded-md border px-2 py-1 text-xs ${on ? "bg-primary text-primary-foreground" : "bg-background"}`}>{uf}</button>; })}</div>
         </div>
-        <p className="text-xs text-muted-foreground">Horário (Acre), limite diário, mínimo de avaliações e fotos: perfis fracos, fechados ou fantasmas são descartados.</p>
-        <Row label="Só empresas sem site" v={!!m.sem_site} on={(v) => setM({ ...m, sem_site: v })} />
-        <Row label="Varrer a internet atrás de site próprio (pula quem já tem)" v={!!m.web_scan} on={(v) => setM({ ...m, web_scan: v, sem_site: v || m.sem_site })} />
-        <Row label="Minerar sozinho todo dia de manhã" v={!!m.auto} on={(v) => setM({ ...m, auto: v })} />
-        <Row label="Mandar a abordagem (1ª etapa do roteiro) sozinho" v={!!m.auto_approach} on={(v) => setM({ ...m, auto_approach: v })} />
+        <Row label="Minerar sozinho todo dia" v={!!m.auto} on={(v) => setM({ ...m, auto: v })} />
+        <Row label="Mandar a abordagem sozinho" v={!!m.auto_approach} on={(v) => setM({ ...m, auto_approach: v })} />
+        <Row label="Abordagem inicial pelo B-T6X" v={!!m.btx_opening} on={(v) => setM({ ...m, btx_opening: v })} />
+        {m.btx_opening && <p className="text-xs text-muted-foreground">No B-T6X, crie uma situação com "abordagem inicial" e várias variações; ele sorteia uma por empresa.</p>}
+        <Row label="md-teste (faz tudo, menos mandar mensagem)" v={!!m.md_teste} on={(v) => setM({ ...m, md_teste: v })} />
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" disabled={busy} onClick={() => wrap(() => save({ data: { ...base, miner: m } }), () => "Minerador salvo")}>Salvar</Button>
           <Button disabled={busy} onClick={() => wrap(async () => { await save({ data: { ...base, miner: m } }); return run({ data: { id } }); }, (r) => r.erro ?? `${r.novas} empresas novas`)}><Pickaxe className="mr-1 h-4 w-4" />Minerar agora</Button>

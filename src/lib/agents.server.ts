@@ -11,7 +11,7 @@ export type Agent = {
 export type BtxRule = { when: string; variants: string[]; audio_id?: string };
 export type Btx = { prompt?: string; rules?: BtxRule[] };
 export type Step = { title: string; goal: string; message: string };
-export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number };
+export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number; states?: string[]; btx_opening?: boolean; md_teste?: boolean };
 
 type Tool = { name: string; description: string; properties: Record<string, unknown>; required?: string[] };
 
@@ -234,17 +234,36 @@ export function fillTemplate(t: string, l: { name?: string | null; city?: string
 }
 
 /** Minerador próprio do agente: carteira separada dos leads do dono. */
+/** Padrões de fábrica: só boas empresas, sem site, ativas e com WhatsApp. */
+export const FACTORY = { nota_minima: 3.8, min_reviews: 5, min_photos: 3 };
+
+/** Abordagem inicial: usa a situação de abertura do B-T6X (variação sorteada) ou a 1ª etapa do roteiro. */
+export function openingFor(a: Agent) {
+  if (a.miner?.btx_opening) {
+    const r = (a.btx?.rules ?? []).find((x) => /abord|inic|primeir|abertura/i.test(x.when ?? "") && x.variants?.some((v) => v.trim()));
+    if (r) { const v = r.variants.filter((x) => x.trim()); return v[Math.floor(Math.random() * v.length)]!; }
+  }
+  return a.script_steps?.[0]?.message ?? "";
+}
+
+/** Minerador próprio do agente: carteira separada dos leads do dono. */
 export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: unknown; city?: unknown; limit?: unknown } = {}) {
   const m = (a.miner ?? {}) as Miner;
-  const niche = String(o.niche || m.niche || "").trim(), city = String(o.city || m.city || "").trim();
-  if (!niche || !city) return { erro: "Configure nicho e cidade no minerador do agente." };
+  const niche = String(o.niche || m.niche || "").trim();
+  const { CITIES } = await import("@/lib/mining-options");
+  const states = (m.states ?? []).filter(Boolean);
+  let cities = o.city ? [String(o.city)] : states.length ? CITIES.filter((c) => states.includes(c.split(", ")[1]!)) : m.city ? [m.city] : [];
+  if (!niche || !cities.length) return { erro: "Escolha o nicho e pelo menos um estado." };
+  cities = [...cities].sort(() => Math.random() - 0.5).slice(0, 6);
   const limit = Math.max(1, Math.min(60, Number(o.limit) || m.daily || 15));
-  await logEvent(sb, a, "minerando", `Procurando ${niche} em ${city}…`);
+  const teste = !!m.md_teste;
+  await logEvent(sb, a, "minerando", `${teste ? "[md-teste] " : ""}Procurando ${niche} em ${states.length ? states.join(", ") : cities.join(", ")}…`);
   const { places } = await import("@/lib/jarvis.server");
-  let found = (await places(niche, city, m.nota_minima ?? 0)).filter((x) => x.phone);
-  if (m.sem_site) found = found.filter((x) => !x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website));
+  let found: Awaited<ReturnType<typeof places>> = [];
+  for (const c of cities) { try { found.push(...(await places(niche, c, FACTORY.nota_minima))); } catch { /* segue */ } if (found.length > limit * 4) break; }
+  found = found.filter((x) => x.phone && (!x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website)));
   const before = found.length;
-  found = found.filter((x) => x.open && x.reviews_count >= (m.min_reviews ?? 0) && x.photos >= (m.min_photos ?? 0));
+  found = found.filter((x) => x.open && x.reviews_count >= FACTORY.min_reviews && x.photos >= FACTORY.min_photos);
   const weak = before - found.length;
   const ids = found.map((x) => x.place_id);
   const [{ data: mine }, { data: owner }] = await Promise.all([
@@ -252,21 +271,22 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
     sb.from("leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
   ]);
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
-  let fresh = found.filter((x) => !skip.has(x.place_id));
+  const seen = new Set<string>();
+  let fresh = found.filter((x) => !skip.has(x.place_id) && !seen.has(x.place_id) && seen.add(x.place_id));
   let withSite = 0;
-  if (m.sem_site && m.web_scan) {
-    const keep: typeof fresh = [];
-    for (const x of fresh) { if (keep.length >= limit) break; if (await hasOwnSite(x.name, x.city ?? city)) withSite++; else keep.push(x); }
-    fresh = keep;
-  }
-  fresh = fresh.slice(0, limit);
+  const keep: typeof fresh = [];
+  for (const x of fresh) { if (keep.length >= limit) break; if (await hasOwnSite(x.name, x.city ?? "")) withSite++; else keep.push(x); }
+  fresh = keep;
   if (weak || withSite) await logEvent(sb, a, "filtrou", `Descartou ${weak} perfis fracos (poucas fotos/avaliações ou fechados)${withSite ? ` e ${withSite} que já têm site na internet` : ""}`);
-  const steps = Array.isArray(a.script_steps) ? a.script_steps : [];
-  const approach = !!m.auto_approach && !!a.instance && !!steps[0]?.message;
+  if (teste) {
+    for (const x of fresh) await logEvent(sb, a, "teste", `${x.name} (${x.city ?? ""}) ⭐${x.rating ?? "-"} · ${x.reviews_count} aval. · ${x.photos} fotos${x.website ? " · só rede social" : " · sem site"} → abordaria: "${fillTemplate(openingFor(a), x).slice(0, 220)}"`);
+    return { novas: fresh.length, teste: true };
+  }
+  const approach = !!m.auto_approach && !!a.instance && !!openingFor(a);
   let t = Date.now() + 2 * 60000;
   const rows = fresh.map(({ photos: _p, open: _o, ...x }) => { t += (6 + Math.random() * 9) * 60000; return { ...x, user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
   if (rows.length) await sb.from("agent_leads").insert(rows);
-  await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche}, ${city})${approach ? " e agendou a abordagem" : ""}`);
+  await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche})${approach ? " e agendou a abordagem" : ""}`);
   return { novas: rows.length, abordagem_agendada: approach };
 }
 
@@ -309,7 +329,8 @@ export async function processAgentQueue(sb: SupabaseClient) {
     if (!got?.length) continue;
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
     const ag = a as any as Agent | null;
-    const step = ag?.script_steps?.[0]?.message;
+    const step = ag ? openingFor(ag) : "";
+    if (ag?.miner?.md_teste) { await sb.from("agent_leads").update({ status: "novo", send_at: null }).eq("id", l.id); continue; }
     if (!ag || !ag.active || !ag.instance || !step) { await sb.from("agent_leads").update({ status: "novo", send_at: null }).eq("id", l.id); continue; }
     try {
       const { evoSend } = await import("@/lib/evolution.server");
