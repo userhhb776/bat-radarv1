@@ -844,6 +844,24 @@ export type Database = {
         }
         Relationships: []
       }
+      service_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       site_prompts: {
         Row: {
           business_name: string
@@ -996,6 +1014,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      db_usage: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
