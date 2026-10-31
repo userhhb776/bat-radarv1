@@ -5,8 +5,7 @@ import { requireApprovedAccount as requireSupabaseAuth } from "@/lib/access.midd
 import { prefixFor, ownInstance, isAdmin, canUse } from "@/lib/wa-owner";
 
 async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
-  const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
-  const key = process.env["EVOLUTION_API_KEY"] ?? "";
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   let res: Response;
   try {

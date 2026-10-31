@@ -57,6 +57,7 @@ function BuscarPage() {
   const search = useServerFn(searchPlaces);
   const { data: saved = [] } = useQuery({ queryKey: leadsKey, queryFn: listLeads });
   const [niche, setNiche] = useState("");
+  const [store, setStore] = useState(false);
   const [city, setCity] = useState("");
   const [hood, setHood] = useState("");
   const [minRating, setMinRating] = useState("0");
@@ -71,14 +72,14 @@ function BuscarPage() {
   const [open, setOpen] = useState<PlaceLead | null>(null);
 
   async function run(more = false) {
-    if (niche.trim().length < 2 || city.trim().length < 2) {
-      toast.error("Informe nicho e cidade.");
+    if (niche.trim().length < 2 || (!store && city.trim().length < 2)) {
+      toast.error(store ? "Informe o nome da loja." : "Informe nicho e cidade.");
       return;
     }
     setLoading(true);
     try {
       const r = await search({
-        data: { niche, city, neighborhood: hood, minRating: Number(minRating), pageToken: more ? token ?? undefined : undefined },
+        data: { niche, city, neighborhood: hood, store, minRating: Number(minRating), pageToken: more ? token ?? undefined : undefined },
       });
       const prevIds = new Set(more ? results.map((x) => x.placeId) : []);
       const fresh = r.leads.filter((l, i) => !prevIds.has(l.placeId) && r.leads.findIndex((x) => x.placeId === l.placeId) === i);
@@ -145,6 +146,22 @@ function BuscarPage() {
         onSubmit={(e) => { e.preventDefault(); run(false); }}
         className="mt-6 rounded-lg border bg-card p-4 sm:p-5"
       >
+        <div className="mb-4 inline-flex rounded-md border p-1">
+          <Button type="button" size="sm" variant={store ? "ghost" : "secondary"} onClick={() => { setStore(false); setNiche(""); }}>Por nicho</Button>
+          <Button type="button" size="sm" variant={store ? "secondary" : "ghost"} onClick={() => { setStore(true); setNiche(""); }}>Loja específica</Button>
+        </div>
+        {store ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>Nome da loja</Label>
+              <Input value={niche} onChange={(e) => setNiche(e.target.value)} placeholder="Ex.: Padaria Pão Dourado" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Cidade ou país (opcional)</Label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex.: Lisboa, Portugal" />
+            </div>
+          </div>
+        ) : (
         <div className="grid gap-4 md:grid-cols-4">
           <div className="space-y-1.5 md:col-span-2">
             <Label>Nicho</Label>
@@ -173,6 +190,7 @@ function BuscarPage() {
             <Input value={hood} onChange={(e) => setHood(e.target.value)} placeholder="Ex.: Cambuí" />
           </div>
         </div>
+        )}
         <div className="mt-4 grid grid-cols-2 items-end gap-4 sm:grid-cols-3 lg:grid-cols-[auto_auto_auto_auto_1fr]">
           <div className="space-y-1.5">
             <Label>Nota mínima</Label>
