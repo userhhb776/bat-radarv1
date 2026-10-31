@@ -76,7 +76,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               if (trainer) {
                 const { humanReply } = await import("@/lib/agents.server");
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000) }).select("id").single();
-                await humanReply(sb, { ...(trainer as any), pace: "rapido" }, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
+                await humanReply(sb, trainer as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
                 continue;
               }
               const a = agents.find((x) => x.auto_reply) ?? agents[0];

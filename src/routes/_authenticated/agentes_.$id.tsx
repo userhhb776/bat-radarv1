@@ -172,7 +172,16 @@ function Miner({ id, a, leads }: { id: string; a: any; leads: any[] }) {
           <Input type="number" placeholder="Nota mínima" value={m.nota_minima ?? ""} onChange={(e) => setM({ ...m, nota_minima: Number(e.target.value) || 0 })} />
           <Input type="number" placeholder="Quantas por vez" value={m.daily ?? 15} onChange={(e) => setM({ ...m, daily: Math.max(1, Math.min(60, Number(e.target.value) || 15)) })} />
         </div>
+          <Input type="number" placeholder="Mín. avaliações" value={m.min_reviews ?? ""} onChange={(e) => setM({ ...m, min_reviews: Math.max(0, Number(e.target.value) || 0) })} />
+          <Input type="number" placeholder="Mín. fotos (máx 10)" value={m.min_photos ?? ""} onChange={(e) => setM({ ...m, min_photos: Math.max(0, Math.min(10, Number(e.target.value) || 0)) })} />
+          <Input type="number" placeholder="Abordar a partir de (h)" value={m.hora_inicio ?? 8} onChange={(e) => setM({ ...m, hora_inicio: Math.max(0, Math.min(23, Number(e.target.value) || 0)) })} />
+          <Input type="number" placeholder="Abordar até (h)" value={m.hora_fim ?? 18} onChange={(e) => setM({ ...m, hora_fim: Math.max(1, Math.min(24, Number(e.target.value) || 18)) })} />
+          <Input type="number" placeholder="Máx. abordagens por dia" value={m.limite_dia ?? 30} onChange={(e) => setM({ ...m, limite_dia: Math.max(1, Math.min(200, Number(e.target.value) || 30)) })} />
+        </div>
+        <p className="text-xs text-muted-foreground">Horário (Acre), limite diário, mínimo de avaliações e fotos: perfis fracos, fechados ou fantasmas são descartados.</p>
+        <div>
         <Row label="Só empresas sem site" v={!!m.sem_site} on={(v) => setM({ ...m, sem_site: v })} />
+        <Row label="Varrer a internet atrás de site próprio (pula quem já tem)" v={!!m.web_scan} on={(v) => setM({ ...m, web_scan: v, sem_site: v || m.sem_site })} />
         <Row label="Minerar sozinho todo dia de manhã" v={!!m.auto} on={(v) => setM({ ...m, auto: v })} />
         <Row label="Mandar a abordagem (1ª etapa do roteiro) sozinho" v={!!m.auto_approach} on={(v) => setM({ ...m, auto_approach: v })} />
         <div className="flex flex-wrap gap-2">
