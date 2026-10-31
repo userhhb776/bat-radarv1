@@ -62,7 +62,7 @@ export async function runAction(sb: SupabaseClient, userId: string, action: stri
       return (data ?? []).map((s: any) => ({ id: s.id, titulo: s.title, nicho: s.niche, objetivo: s.stage, mensagens: scriptMessages(s).length }));
     }
     case "listar_instancias": {
-      const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, ""); const key = process.env["EVOLUTION_API_KEY"] ?? "";
+      const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
       const r = await fetch(`${base}/instance/fetchInstances`, { headers: { apikey: key } });
       const list = (r.ok ? await r.json() : []) as Array<Record<string, unknown>>;
       const { data: st } = await own(sb.from("user_settings").select("wa_labels")).maybeSingle();

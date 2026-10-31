@@ -26,7 +26,7 @@ export const argosChat = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
   .inputValidator((d: unknown) => z.object({ messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(8000) })).min(1).max(40) }).parse(d))
   .handler(async ({ data, context }) => {
-    const key = process.env["OLLAMA_API_KEY"];
+    const key = await (await import("@/lib/service-config.server")).getOllamaKey();
     if (!key) throw new Error("Chave do Ollama não configurada.");
     const { runAction } = await import("@/lib/jarvis.server");
     const { getRequest } = await import("@tanstack/react-start/server");

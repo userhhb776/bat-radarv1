@@ -1,7 +1,6 @@
 import { normalizeBR } from "@/lib/phone";
 export async function evoSend(instance: string, phone: string, texts: string[]) {
-  const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
-  const key = process.env["EVOLUTION_API_KEY"] ?? "";
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   const number = normalizeBR(phone);
   if (!number) throw new Error("Telefone inválido.");
@@ -23,8 +22,7 @@ const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/
 
 /** Aplica uma etiqueta do WhatsApp Business (já criada no celular) à conversa. Retorna false se a etiqueta não existir. */
 export async function evoLabel(instance: string, phone: string, labelName: string): Promise<boolean> {
-  const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
-  const key = process.env["EVOLUTION_API_KEY"] ?? "";
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   const number = normalizeBR(phone);
   if (!base || !key || !number) return false;
   const inst = encodeURIComponent(instance);
@@ -42,8 +40,7 @@ export async function evoLabel(instance: string, phone: string, labelName: strin
 }
 
 export async function evoGet(path: string, timeoutMs = 60000): Promise<unknown> {
-  const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
-  const key = process.env["EVOLUTION_API_KEY"] ?? "";
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   let res: Response;
   try {

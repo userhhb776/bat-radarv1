@@ -11,8 +11,7 @@ export const INBOUND_URL = "https://project--630b7e1b-b5e9-450e-a09f-ee7087d788d
 
 /** Liga o aviso de mensagens recebidas na conexão do WhatsApp (idempotente). */
 export async function registerInbound(instance: string) {
-  const base = (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/$/, "");
-  const key = process.env["EVOLUTION_API_KEY"] ?? "";
+  const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) return false;
   const url = `${INBOUND_URL}?t=${inboundToken()}`;
   const res = await fetch(`${base}/webhook/set/${encodeURIComponent(instance)}`, {
