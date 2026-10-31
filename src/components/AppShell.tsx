@@ -26,6 +26,7 @@ const groups = [
     { title: "Campanhas", url: "/campanhas", icon: Megaphone },
     { title: "Agendamentos", url: "/agendamentos", icon: CalendarClock },
     { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+    { title: "Agentes", url: "/agentes", icon: Bot },
   ] },
   { label: "Vendas", items: [
     { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
