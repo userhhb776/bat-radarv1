@@ -40,6 +40,7 @@ const noSite = (w: string | null) => !w || /instagram\.com|wa\.me|whatsapp\.com|
 
 async function saveToBlock(sb: SupabaseClient, userId: string, blockId: string, rows: Place[]) {
   if (!rows.length) return 0;
+  rows = rows.map(({ photos: _p, open: _o, ...r }: any) => r) as Place[];
   await sb.from("leads").upsert(rows.map((r) => ({ ...r, user_id: userId })), { onConflict: "user_id,place_id", ignoreDuplicates: true });
   const { error } = await sb.from("block_items").upsert(rows.map((r) => ({ ...r, block_id: blockId, user_id: userId })), { onConflict: "block_id,place_id", ignoreDuplicates: true });
   if (error) throw new Error(error.message);

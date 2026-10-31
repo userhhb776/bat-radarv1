@@ -9,7 +9,7 @@ export type Agent = {
   context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner;
 };
 export type Step = { title: string; goal: string; message: string };
-export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean };
+export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number };
 
 type Tool = { name: string; description: string; properties: Record<string, unknown>; required?: string[] };
 
@@ -221,30 +221,68 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const { places } = await import("@/lib/jarvis.server");
   let found = (await places(niche, city, m.nota_minima ?? 0)).filter((x) => x.phone);
   if (m.sem_site) found = found.filter((x) => !x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website));
+  const before = found.length;
+  found = found.filter((x) => x.open && x.reviews_count >= (m.min_reviews ?? 0) && x.photos >= (m.min_photos ?? 0));
+  const weak = before - found.length;
   const ids = found.map((x) => x.place_id);
   const [{ data: mine }, { data: owner }] = await Promise.all([
     sb.from("agent_leads").select("place_id").eq("agent_id", a.id).in("place_id", ids),
     sb.from("leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
   ]);
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
-  const fresh = found.filter((x) => !skip.has(x.place_id)).slice(0, limit);
+  let fresh = found.filter((x) => !skip.has(x.place_id));
+  let withSite = 0;
+  if (m.sem_site && m.web_scan) {
+    const keep: typeof fresh = [];
+    for (const x of fresh) { if (keep.length >= limit) break; if (await hasOwnSite(x.name, x.city ?? city)) withSite++; else keep.push(x); }
+    fresh = keep;
+  }
+  fresh = fresh.slice(0, limit);
+  if (weak || withSite) await logEvent(sb, a, "filtrou", `Descartou ${weak} perfis fracos (poucas fotos/avaliações ou fechados)${withSite ? ` e ${withSite} que já têm site na internet` : ""}`);
   const steps = Array.isArray(a.script_steps) ? a.script_steps : [];
   const approach = !!m.auto_approach && !!a.instance && !!steps[0]?.message;
   let t = Date.now() + 2 * 60000;
-  const rows = fresh.map((x) => { t += (6 + Math.random() * 9) * 60000; return { ...x, user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
+  const rows = fresh.map(({ photos: _p, open: _o, ...x }) => { t += (6 + Math.random() * 9) * 60000; return { ...x, user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
   if (rows.length) await sb.from("agent_leads").insert(rows);
   await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche}, ${city})${approach ? " e agendou a abordagem" : ""}`);
   return { novas: rows.length, abordagem_agendada: approach };
 }
 
-const inWindow = (d = new Date()) => { const h = (d.getUTCHours() + 19) % 24; const wd = new Date(d.getTime() - 5 * 3600000).getUTCDay(); return h >= 8 && h < 18 && wd !== 0; };
+const inWindow = (m: Miner = {}, d = new Date()) => { const h = (d.getUTCHours() + 19) % 24; const wd = new Date(d.getTime() - 5 * 3600000).getUTCDay(); return h >= (m.hora_inicio ?? 8) && h < (m.hora_fim ?? 18) && wd !== 0; };
+
+/** Varredura simples: procura domínio próprio (.com.br/.com) com o nome da empresa. */
+export function siteGuesses(name: string) {
+  const base = name.split(/[-|–(]/)[0]!.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return base.length < 4 ? [] : [`${base}.com.br`, `${base}.com`];
+}
+async function hasOwnSite(name: string, city: string) {
+  for (const d of siteGuesses(name)) {
+    try {
+      const r = await fetch(`https://${d}`, { signal: AbortSignal.timeout(4000), redirect: "follow" });
+      if (!r.ok) continue;
+      const html = (await r.text()).slice(0, 60000).toLowerCase();
+      const word = name.toLowerCase().split(/\s+/).find((w) => w.length > 3) ?? "";
+      if (/parked|domain is for sale|registro\.br|hostgator.*em breve|godaddy/i.test(html)) continue;
+      if (word && html.includes(word)) return true;
+      if (city && html.includes(city.toLowerCase())) return true;
+    } catch { /* sem site */ }
+  }
+  return false;
+}
 
 /** Envia as abordagens agendadas dos agentes (chamado pelo agendador). */
 export async function processAgentQueue(sb: SupabaseClient) {
-  if (!inWindow()) return 0;
+  const today = new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10) + "T05:00:00Z";
+  const sentToday = new Map<string, number>();
   const { data: due } = await sb.from("agent_leads").select("*").eq("status", "fila").lte("send_at", new Date().toISOString()).order("send_at").limit(8);
   let sent = 0;
   for (const l of (due ?? []) as any[]) {
+    const { data: ag0 } = await sb.from("agents").select("miner").eq("id", l.agent_id).single();
+    const m0 = ((ag0 as any)?.miner ?? {}) as Miner;
+    if (!inWindow(m0)) continue;
+    if (!sentToday.has(l.agent_id)) { const { count } = await sb.from("agent_events").select("id", { count: "exact", head: true }).eq("agent_id", l.agent_id).eq("kind", "abordou").gte("created_at", today); sentToday.set(l.agent_id, count ?? 0); }
+    if (sentToday.get(l.agent_id)! >= (m0.limite_dia ?? 30)) continue;
+    sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     const { data: got } = await sb.from("agent_leads").update({ status: "enviando" }).eq("id", l.id).eq("status", "fila").select("id");
     if (!got?.length) continue;
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
