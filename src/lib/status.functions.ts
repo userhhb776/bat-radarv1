@@ -71,7 +71,7 @@ export const getSystemStatus = createServerFn({ method: "POST" })
     // uso da IA neste mês (conversas registradas no Argos)
     const { count: argosCount } = await context.supabase
       .from("access_events").select("id", { count: "exact", head: true })
-      .eq("kind", "argos").gte("created_at", monthStart.toISOString());
+      .eq("kind", "page").eq("page", "/argos-chat").gte("created_at", monthStart.toISOString());
 
     return {
       db: { bytes: db.bytes, limit: DB_LIMIT_BYTES, tables: db.tables ?? [] },

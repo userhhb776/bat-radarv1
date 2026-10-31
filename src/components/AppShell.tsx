@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountAccess } from "@/lib/access.functions";
-import { Search, KanbanSquare, LogOut, Crosshair, FilePenLine, Contact, ScrollText, Inbox, Sunrise, MessageCircle, Layers, Megaphone, CalendarClock, Send, Users, MessagesSquare, BookOpen, Brain, Bot } from "lucide-react";
+import { Search, KanbanSquare, LogOut, Crosshair, FilePenLine, Contact, ScrollText, Inbox, Sunrise, MessageCircle, Layers, Megaphone, CalendarClock, Send, Users, MessagesSquare, BookOpen, Brain, Bot, Gauge } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { pingActivity } from "@/lib/push-client";
@@ -89,6 +89,7 @@ function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           {access.data?.admin && <SidebarMenuItem><SidebarMenuButton asChild isActive={path === "/acess"} tooltip="ACESS"><Link to="/acess" onClick={() => setOpenMobile(false)}><Contact className="h-4 w-4" /><span>ACESS</span></Link></SidebarMenuButton></SidebarMenuItem>}
+          {access.data?.admin && <SidebarMenuItem><SidebarMenuButton asChild isActive={path === "/sistema"} tooltip="Sistema"><Link to="/sistema" onClick={() => setOpenMobile(false)}><Gauge className="h-4 w-4" /><span>Sistema</span></Link></SidebarMenuButton></SidebarMenuItem>}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut} tooltip="Sair"><LogOut className="h-4 w-4" /><span>Sair</span></SidebarMenuButton>
           </SidebarMenuItem>
