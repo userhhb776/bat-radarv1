@@ -44,6 +44,113 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_messages: {
+        Row: {
+          agent_id: string
+          body: string
+          contact_name: string
+          created_at: string
+          direction: string
+          hot: boolean
+          id: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          body: string
+          contact_name?: string
+          created_at?: string
+          direction: string
+          hot?: boolean
+          id?: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          body?: string
+          contact_name?: string
+          created_at?: string
+          direction?: string
+          hot?: boolean
+          id?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          active: boolean
+          ai_key: string | null
+          ai_provider: string
+          auto_reply: boolean
+          created_at: string
+          id: string
+          ideal_client: string
+          instance: string
+          learned: string
+          mission: string
+          model: string
+          name: string
+          offer: string
+          rules: string
+          training_mode: boolean
+          training_phone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          ai_key?: string | null
+          ai_provider?: string
+          auto_reply?: boolean
+          created_at?: string
+          id?: string
+          ideal_client?: string
+          instance?: string
+          learned?: string
+          mission?: string
+          model?: string
+          name: string
+          offer?: string
+          rules?: string
+          training_mode?: boolean
+          training_phone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          ai_key?: string | null
+          ai_provider?: string
+          auto_reply?: boolean
+          created_at?: string
+          id?: string
+          ideal_client?: string
+          instance?: string
+          learned?: string
+          mission?: string
+          model?: string
+          name?: string
+          offer?: string
+          rules?: string
+          training_mode?: boolean
+          training_phone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       block_items: {
         Row: {
           address: string | null
