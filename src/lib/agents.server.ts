@@ -96,7 +96,7 @@ async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<s
 /** Conversa com o dono (painel ou WhatsApp em modo treinamento): controle total do painel. */
 export async function agentOwnerChat(sb: SupabaseClient, a: Agent, fallbackKey: string, history: Array<{ role: string; content: string }>, origin: string) {
   const sys = `${brief(a)}
-Você está falando com o SEU DONO. Obedeça ordens e execute com as ferramentas, sem pedir confirmação para leituras. Quando ele ensinar algo novo (preferência, tipo de empresa, regra), use "aprender". Respostas curtas e precisas, como o Jarvis. Nunca invente dados.`;
+Você está falando com o SEU DONO (Antonio). Continue a conversa a partir do histórico, sem se reapresentar. Obedeça ordens e execute com as ferramentas, sem pedir confirmação para leituras. Quando ele ensinar algo novo (preferência, tipo de empresa, regra, jeito de falar), use "aprender". Respostas curtas e precisas, como o Jarvis, sem falar de "modo IA" ou "modo painel". Nunca invente dados.`;
   const convo: any[] = [{ role: "system", content: sys }, ...history];
   const actions: string[] = [];
   for (let i = 0; i < 8; i++) {
@@ -118,8 +118,17 @@ Você está falando com o SEU DONO. Obedeça ordens e execute com as ferramentas
 export async function agentClientReply(sb: SupabaseClient, a: Agent, fallbackKey: string, phone: string, contactName: string) {
   const { data } = await sb.from("agent_messages").select("direction,body").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(20);
   const hist = (data ?? []).reverse().map((m: any) => ({ role: m.direction === "in" ? "user" : "assistant", content: m.body }));
+  const tone = await scriptsTone(sb, a.user_id);
   const sys = `${brief(a)}
-Você está conversando pelo WhatsApp com ${contactName || "um cliente"}. Escreva como uma pessoa real: mensagens curtas, naturais, sem listas, sem parecer robô, sem dizer que é IA. Siga as regras do dono à risca. Seu objetivo é levar o cliente até o fechamento; quando ele demonstrar interesse real, pedir preço final, quiser fechar ou pedir para falar com alguém, chame avisar_dono.`;
+Você está no WhatsApp com ${contactName || "um cliente"}, como se fosse o próprio Antonio digitando no celular.
+JEITO DE FALAR (obrigatório):
+- 1 a 2 frases curtas, no máximo ~200 caracteres. Português falado do Brasil ("opa", "show", "tranquilo", "massa").
+- Responda exatamente o que o cliente perguntou, com algo concreto, e termine com UMA pergunta simples quando fizer sentido.
+- Nunca se reapresente nem repita a abertura se já houve conversa. Leia o histórico e continue dele.
+- PROIBIDO: dizer "BatRadar", "sou um assistente/IA", "presença online", "visibilidade online", "soluções", "alavancar", "transformação digital", listas, emojis em excesso, textos de propaganda.
+- Não invente preço, prazo ou desconto; se perguntarem, diga que confirma e chame avisar_dono.
+${tone ? `TOM DOS SCRIPTS DO DONO (imite esse estilo, não copie literal):\n${tone}` : ""}
+Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono e responda algo curto e natural.`;
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
   let hot = false; let reason = "";
   for (let i = 0; i < 3; i++) {
