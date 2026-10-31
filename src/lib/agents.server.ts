@@ -81,7 +81,7 @@ async function llm(a: Agent, fallbackKey: string, messages: any[], tools: Tool[]
 
 const digits = (s: string) => s.replace(/\D/g, "");
 
-async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<string, any>, origin: string) {
+export async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<string, any>, origin: string) {
   if (name === "conversa_com") {
     const q = String(p["busca"] ?? "").trim();
     const d = digits(q);

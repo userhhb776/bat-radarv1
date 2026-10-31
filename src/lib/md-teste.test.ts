@@ -4,7 +4,7 @@ const evoSend = vi.fn(), evoSendAudio = vi.fn();
 vi.mock("@/lib/evolution.server", () => ({ evoSend, evoSendAudio }));
 vi.mock("@/lib/mining-options", async () => await import("./mining-options"));
 
-import { openingFor, citiesFor, processAgentQueue, runAgentTool } from "./agents.server";
+import { openingFor, citiesFor, processAgentQueue, ownerTool } from "./agents.server";
 
 // cliente falso do banco: devolve as linhas pedidas e registra updates
 function fakeDb(tables: Record<string, any[]>) {
@@ -52,7 +52,7 @@ describe("md-teste e abordagem", () => {
   it("md-teste: ferramenta enviar_mensagem não envia", async () => {
     evoSend.mockClear();
     const { sb } = fakeDb({ agent_events: [] });
-    const r: any = await runAgentTool(sb, agent({ md_teste: true }) as any, "enviar_mensagem", { telefone: "5568999999999", texto: "oi" });
+    const r: any = await ownerTool(sb, agent({ md_teste: true }) as any, "enviar_mensagem", { telefone: "5568999999999", texto: "oi" }, "");
     expect(r.teste).toBe(true);
     expect(evoSend).not.toHaveBeenCalled();
   });
