@@ -24,6 +24,12 @@ const sections: { title: string; items: [string, string][] }[] = [
     ["Agendamentos", "Envios programados para uma empresa só, fora de campanha."],
     ["Métricas", "Total enviado, falhas e empresas por bloco, com gráfico."],
     ["WhatsApp", "Conecte e renomeie seus números pelo QR Code."],
+    ["Agentes", "Vendedores automáticos: mineram empresas, mandam a abordagem e conversam com os clientes seguindo suas regras. Crie em Modo chat (você descreve o que quer e ele se monta sozinho) ou pelo Formulário. Escolha o número, a IA (nativa ou chave própria do Ollama) e ligue ou desligue quando quiser. Em Abrir você dá ordens, vê as conversas e os clientes com 🔥 que merecem atenção. O administrador também pode treinar pelo WhatsApp no modo treinamento."],
+  ] },
+  { title: "Inteligência e sistema", items: [
+    ["Argos", "Assistente do painel. Peça em texto (ex.: \"minere 20 clínicas em Rio Branco\") e ele executa: busca, cria blocos, campanhas e mostra resumos."],
+    ["Buscar loja específica", "Na tela Buscar, use \"Loja específica\" para achar uma empresa pelo nome, inclusive fora do Brasil."],
+    ["Sistema (só administrador)", "Mostra o uso do banco, o servidor do WhatsApp (horas grátis e dias para renovar) e a IA. Dá para trocar o servidor e a chave da IA pelo próprio painel; o painel testa antes de salvar."],
   ] },
   { title: "Vendas", items: [
     ["Pipeline", "Status de cada empresa: Novo, Mensagem enviada, Respondeu, Reunião, Fechado e Perdido."],
@@ -43,6 +49,7 @@ const tips = [
   "Crie variações em todas as mensagens e cite a origem do contato (ex.: o grupo).",
   "Não insista com quem não respondeu e remova quem pedir para sair.",
   "No plano gratuito o servidor do WhatsApp dorme e pode atrasar ou falhar o primeiro envio; o plano pago básico resolve.",
+  "Notificações no celular são gratuitas: ative o sino depois de instalar o app.",
   "O robô de envio confere a fila a cada 18 minutos: um envio pode sair até 18 min depois do horário marcado.",
   "Sempre publique depois de mudanças para valerem no app instalado.",
 ];

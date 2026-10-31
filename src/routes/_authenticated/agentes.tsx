@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { listAgents, saveAgent, deleteAgent, agentConversations, talkToAgent } from "@/lib/agents.functions";
+import { listAgents, saveAgent, deleteAgent, agentConversations, talkToAgent, designAgent } from "@/lib/agents.functions";
 import { waList } from "@/lib/whatsapp.functions";
 
 export const Route = createFileRoute("/_authenticated/agentes")({
@@ -82,8 +82,16 @@ function Editor({ a, admin, inst, onClose }: { a: A; admin: boolean; inst: Array
     try { await save({ data: { ...f, id: f.id } as any }); toast.success("Agente salvo"); qc.invalidateQueries({ queryKey: ["agents"] }); onClose(); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
   }
+  const [mode, setMode] = useState<"chat" | "form">(a.id ? "form" : "chat");
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="flex gap-2">
+        <Button type="button" size="sm" variant={mode === "chat" ? "default" : "outline"} onClick={() => setMode("chat")}>Modo chat</Button>
+        <Button type="button" size="sm" variant={mode === "form" ? "default" : "outline"} onClick={() => setMode("form")}>Formulário</Button>
+      </div>
+      {mode === "chat" && <DesignChat f={f} onDraft={(d) => setF((p) => ({ ...p, ...Object.fromEntries(Object.entries(d).filter(([, v]) => v !== "")) }))} />}
+      {mode === "chat" && f.name && <p className="text-xs text-muted-foreground">Rascunho: <b>{f.name}</b>. Veja e ajuste em "Formulário", escolha o número e salve.</p>}
+      {mode === "form" && <>
       <Field label="Nome do agente"><Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Vega" /></Field>
       <Field label="Missão (o que ele faz)"><Textarea rows={2} value={f.mission} onChange={(e) => set("mission", e.target.value)} placeholder="Minerar clínicas sem site em Rio Branco, abordar e marcar reunião" /></Field>
       <Field label="O que você vende agora"><Textarea rows={2} value={f.offer} onChange={(e) => set("offer", e.target.value)} placeholder="Sites a partir de R$ 600, gestão de Instagram..." /></Field>
@@ -106,10 +114,37 @@ function Editor({ a, admin, inst, onClose }: { a: A; admin: boolean; inst: Array
       <Toggle label="Responder clientes sozinho" v={f.auto_reply} on={(v) => set("auto_reply", v)} />
       {admin && <Toggle label="Modo treinamento (falo com ele pelo +55 68 99231-6302)" v={f.training_mode} on={(v) => set("training_mode", v)} />}
       <Toggle label="Agente ativo" v={f.active} on={(v) => set("active", v)} />
+      </>}
       <div className="flex justify-between">
         {f.id ? <Button variant="ghost" onClick={async () => { await del({ data: { id: f.id! } }); qc.invalidateQueries({ queryKey: ["agents"] }); onClose(); }}><Trash2 className="mr-1 h-4 w-4" />Excluir</Button> : <span />}
         <div className="flex gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy || !f.name} onClick={submit}>{busy && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Salvar</Button></div>
       </div>
+    </div>
+  );
+}
+
+function DesignChat({ f, onDraft }: { f: A; onDraft: (d: Partial<A>) => void }) {
+  const design = useServerFn(designAgent);
+  const [msgs, setMsgs] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function send() {
+    if (!text.trim() || busy) return;
+    const next = [...msgs, { role: "user" as const, content: text.trim() }];
+    setMsgs(next); setText(""); setBusy(true);
+    try {
+      const { name, mission, offer, ideal_client, rules, auto_reply } = f;
+      const r = await design({ data: { messages: next.slice(-20), current: { name, mission, offer, ideal_client, rules, auto_reply } } });
+      setMsgs([...next, { role: "assistant", content: r.reply }]); onDraft(r.agent);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
+  }
+  return (
+    <div className="space-y-2">
+      <div className="max-h-72 space-y-2 overflow-y-auto">
+        {!msgs.length && <p className="text-xs text-muted-foreground">Diga o que quer, ex: "Quero um agente que encontre academias sem site em Rio Branco, ofereça site por R$ 800 e fale de forma descontraída".</p>}
+        {msgs.map((m, i) => <div key={i} className={`rounded-lg p-2 text-sm ${m.role === "user" ? "ml-8 bg-primary text-primary-foreground" : "mr-8 bg-muted"}`}>{m.content}</div>)}
+      </div>
+      <div className="flex gap-2"><Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Descreva o agente ou peça mudanças..." /><Button disabled={busy} onClick={send}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button></div>
     </div>
   );
 }
