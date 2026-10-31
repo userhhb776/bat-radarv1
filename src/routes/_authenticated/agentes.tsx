@@ -33,7 +33,6 @@ function Page() {
   const { data } = useQuery({ queryKey: ["agents"], queryFn: () => list() });
   const { data: inst = [] } = useQuery({ queryKey: ["wa_instances"], queryFn: () => wa(), retry: 1 });
   const [edit, setEdit] = useState<A | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
   const agents = (data?.agents ?? []) as any[];
   const save = useServerFn(saveAgent);
   const toggle = async (a: any) => { await save({ data: { ...a, ai_key: undefined, active: !a.active } }); qc.invalidateQueries({ queryKey: ["agents"] }); };
@@ -151,49 +150,3 @@ function DesignChat({ f, onDraft }: { f: A; onDraft: (d: Partial<A>) => void }) 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => <div className="space-y-1"><Label>{label}</Label>{children}</div>;
 const Toggle = ({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) => <label className="flex items-center justify-between gap-3 text-sm"><span>{label}</span><Switch checked={v} onCheckedChange={on} /></label>;
 
-function AgentPanel({ id, name }: { id: string; name: string }) {
-  const conv = useServerFn(agentConversations);
-  const talk = useServerFn(talkToAgent);
-  const { data: rows = [] } = useQuery({ queryKey: ["agent-msgs", id], queryFn: () => conv({ data: { id } }), refetchInterval: 30000 });
-  const [sel, setSel] = useState<string | null>(null);
-  const [msgs, setMsgs] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const threads = new Map<string, { name: string; last: string; hot: boolean; at: string }>();
-  for (const r of rows as any[]) if (!threads.has(r.phone)) threads.set(r.phone, { name: r.contact_name || r.phone, last: r.body, hot: false, at: r.created_at });
-  for (const r of rows as any[]) if (r.hot) threads.get(r.phone)!.hot = true;
-  const sorted = [...threads.entries()].sort((a, b) => Number(b[1].hot) - Number(a[1].hot));
-  async function send() {
-    if (!text.trim()) return;
-    const next = [...msgs, { role: "user" as const, content: text.trim() }];
-    setMsgs(next); setText(""); setBusy(true);
-    try { const r = await talk({ data: { id, messages: next.slice(-20) } }); setMsgs([...next, { role: "assistant", content: r.reply }]); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
-  }
-  return (
-    <Tabs defaultValue="falar" className="mt-3">
-      <TabsList><TabsTrigger value="falar">Falar com {name}</TabsTrigger><TabsTrigger value="conversas">Conversas ({threads.size})</TabsTrigger></TabsList>
-      <TabsContent value="falar" className="space-y-2">
-        <div className="max-h-80 space-y-2 overflow-y-auto">
-          {msgs.map((m, i) => <div key={i} className={`rounded-lg p-2 text-sm ${m.role === "user" ? "ml-8 bg-primary text-primary-foreground" : "mr-8 bg-muted"}`}>{m.content}</div>)}
-          {!msgs.length && <p className="text-xs text-muted-foreground">Ex: "o que a Clínica Sorriso respondeu?", "minere 20 academias em Rio Branco sem site", "prefiro empresas com mais de 100 avaliações".</p>}
-        </div>
-        <div className="flex gap-2"><Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Dê uma ordem ou pergunte..." /><Button disabled={busy} onClick={send}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button></div>
-      </TabsContent>
-      <TabsContent value="conversas">
-        {!sorted.length && <p className="text-sm text-muted-foreground">Nenhuma conversa ainda.</p>}
-        <div className="space-y-1">
-          {sorted.map(([phone, t]) => (
-            <div key={phone}>
-              <button className="flex w-full items-center justify-between rounded p-2 text-left text-sm hover:bg-muted" onClick={() => setSel(sel === phone ? null : phone)}>
-                <span className="flex items-center gap-1 font-medium">{t.hot && <Flame className="h-4 w-4 text-destructive" />}{t.name}</span>
-                <span className="ml-2 truncate text-xs text-muted-foreground">{t.last}</span>
-              </button>
-              {sel === phone && <div className="space-y-1 p-2">{(rows as any[]).filter((r) => r.phone === phone).reverse().map((r, i) => <div key={i} className={`rounded p-2 text-xs ${r.direction === "in" ? "mr-8 bg-muted" : "ml-8 bg-accent"}`}>{r.body}</div>)}</div>}
-            </div>
-          ))}
-        </div>
-      </TabsContent>
-    </Tabs>
-  );
-}
