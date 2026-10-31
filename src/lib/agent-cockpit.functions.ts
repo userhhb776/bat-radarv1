@@ -114,7 +114,7 @@ export const studyPrint = createServerFn({ method: "POST" })
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.8-flash",
         messages: [{ role: "user", content: [
           { type: "text", text: `Este é um print de conversa de WhatsApp em que o vendedor (Antonio, mensagens do lado direito/verde) fala com um cliente. ${data.note ? `Observação do dono: ${data.note}. ` : ""}Extraia, em pt-BR e no máximo 12 linhas curtas: como ele abre a conversa, tamanho e tom das frases, gírias/expressões que usa, como responde dúvidas e objeções, como conduz até o fechamento, e 2-3 frases exemplares dele (literais). Não invente nada que não esteja no print. Comece direto, sem introdução.` },
           { type: "image_url", image_url: { url: data.image } },
