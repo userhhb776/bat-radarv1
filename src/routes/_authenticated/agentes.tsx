@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -58,10 +58,9 @@ function Page() {
                 <div className="flex items-center gap-2">
                   <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label="Ativar agente" />
                   <Button size="sm" variant="outline" onClick={() => setEdit({ ...a })}>Treinar</Button>
-                  <Button size="sm" variant="outline" onClick={() => setOpen(open === a.id ? null : a.id)}>{open === a.id ? "Fechar" : "Abrir"}</Button>
+                  <Button size="sm" asChild><Link to="/agentes/$id" params={{ id: a.id }}>Abrir painel</Link></Button>
                 </div>
               </div>
-              {open === a.id && <AgentPanel id={a.id} name={a.name} />}
             </div>
           ))}
         </div>

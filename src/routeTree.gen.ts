@@ -35,6 +35,7 @@ import { Route as AuthenticatedScriptsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSistemaRouteImport } from './routes/_authenticated/sistema'
 import { Route as AuthenticatedTesteRouteImport } from './routes/_authenticated/teste'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
+import { Route as AuthenticatedAgentesIdRouteImport } from './routes/_authenticated/agentes_.$id'
 import { Route as ApiPublicJarvisRouteImport } from './routes/api/public/jarvis'
 import { Route as ApiPublicHooksAccessRequestRouteImport } from './routes/api/public/hooks/access-request'
 import { Route as ApiPublicHooksDailyMiningRouteImport } from './routes/api/public/hooks/daily-mining'
@@ -176,6 +177,11 @@ const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   path: '/whatsapp',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgentesIdRoute = AuthenticatedAgentesIdRouteImport.update({
+  id: '/agentes_/$id',
+  path: '/agentes/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicJarvisRoute = ApiPublicJarvisRouteImport.update({
   id: '/api/public/jarvis',
   path: '/api/public/jarvis',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/sistema': typeof AuthenticatedSistemaRoute
   '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/agentes/$id': typeof AuthenticatedAgentesIdRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
   '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/sistema': typeof AuthenticatedSistemaRoute
   '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/agentes/$id': typeof AuthenticatedAgentesIdRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
   '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/_authenticated/sistema': typeof AuthenticatedSistemaRoute
   '/_authenticated/teste': typeof AuthenticatedTesteRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/_authenticated/agentes_/$id': typeof AuthenticatedAgentesIdRoute
   '/api/public/jarvis': typeof ApiPublicJarvisRoute
   '/api/public/hooks/access-request': typeof ApiPublicHooksAccessRequestRoute
   '/api/public/hooks/daily-mining': typeof ApiPublicHooksDailyMiningRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/teste'
     | '/whatsapp'
+    | '/agentes/$id'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
     | '/api/public/hooks/daily-mining'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/sistema'
     | '/teste'
     | '/whatsapp'
+    | '/agentes/$id'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
     | '/api/public/hooks/daily-mining'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sistema'
     | '/_authenticated/teste'
     | '/_authenticated/whatsapp'
+    | '/_authenticated/agentes_/$id'
     | '/api/public/jarvis'
     | '/api/public/hooks/access-request'
     | '/api/public/hooks/daily-mining'
@@ -623,6 +635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agentes_/$id': {
+      id: '/_authenticated/agentes_/$id'
+      path: '/agentes/$id'
+      fullPath: '/agentes/$id'
+      preLoaderRoute: typeof AuthenticatedAgentesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/jarvis': {
       id: '/api/public/jarvis'
       path: '/api/public/jarvis'
@@ -699,6 +718,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSistemaRoute: typeof AuthenticatedSistemaRoute
   AuthenticatedTesteRoute: typeof AuthenticatedTesteRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
+  AuthenticatedAgentesIdRoute: typeof AuthenticatedAgentesIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -725,6 +745,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSistemaRoute: AuthenticatedSistemaRoute,
   AuthenticatedTesteRoute: AuthenticatedTesteRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
+  AuthenticatedAgentesIdRoute: AuthenticatedAgentesIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
