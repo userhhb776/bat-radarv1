@@ -364,7 +364,7 @@ function Talk({ id, name }: { id: string; name: string }) {
 function F({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1"><Label>{label}</Label>{children}</div>; }
 function Row({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) { return <div className="flex items-center justify-between gap-2"><Label>{label}</Label><Switch checked={v} onCheckedChange={on} /></div>; }
 
-type BRule = { when: string; variants: string[]; audio_id?: string };
+type BRule = { when: string; variants: string[]; audio_id?: string | undefined };
 function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveBtx), vary = useServerFn(varyMessage), plan = useServerFn(buildBtxPlan);

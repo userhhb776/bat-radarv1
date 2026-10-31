@@ -12,3 +12,11 @@ describe("agentes", () => {
   });
   it("linha em branco separa balões, no máximo 3", () => { expect(splitBubbles("a\n\nb\n\nc\n\nd")).toEqual(["a", "b", "c"]); });
 });
+
+import { pickVariant } from "./agents.server";
+import { test as t2, expect as e2 } from "vitest";
+t2("B-T6X sorteia entre variações e ignora vazias", () => {
+  e2(pickVariant(["a", " ", "b"], 0)).toBe("a");
+  e2(pickVariant(["a", " ", "b"], 0.99)).toBe("b");
+  e2(pickVariant([], 0.5)).toBe("");
+});
