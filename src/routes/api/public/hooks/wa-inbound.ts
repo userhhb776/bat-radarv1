@@ -36,7 +36,8 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
             const { data: agents } = await supabaseAdmin.from("agents").select("*").eq("instance", instance).eq("active", true);
             if (fromMe) {
               // mensagem que você mandou pelo celular: registra na conversa do agente e pausa a IA nesse contato
-              const ag = agents?.find((x) => !x.training_mode || !x.training_phone || !match(x.training_phone));
+              // no número de teste do dono não registra pausa (senão o agente para de responder no teste)
+              const ag = agents?.some((x) => x.training_phone && match(x.training_phone)) ? undefined : agents?.[0];
               if (text && ag) {
                 const phone = phones[0]!;
                 const since2 = new Date(Date.now() - 180000).toISOString();
@@ -78,8 +79,10 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               }
               if (trainer) {
                 const { humanReply } = await import("@/lib/agents.server");
+                // teste: nunca fica pausado no seu número e responde rápido (evita estourar o tempo do webhook)
+                await (sb as any).from("agent_pauses").delete().eq("agent_id", trainer.id).eq("phone", phone);
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000) }).select("id").single();
-                await humanReply(sb, trainer as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
+                await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
                 continue;
               }
               // escolhe o agente que já conversa com esse contato (tolerante ao 9º dígito)
