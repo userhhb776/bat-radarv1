@@ -44,7 +44,7 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
     return id;
   }
   async function next() {
-    if (step === 0 && !f.name?.trim()) return toast.error("Dê um nome ao agente.");
+    if (step === 0 && !f.name?.trim()) { toast.error("Dê um nome ao agente."); return; }
     setBusy(true);
     try { if (step >= 1) await persist(); setStep(step + 1); } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
   }
