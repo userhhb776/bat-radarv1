@@ -25,7 +25,7 @@ export const saveAgent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (data.training_mode && !admin) throw new Error("Modo treinamento é exclusivo do administrador.");
-    const { id, ai_key, ...rest } = data;
+    const { id, ai_key, ...rest0 } = data as any; const { _teste: _t, ...rest } = rest0;
     const row: any = { ...rest, user_id: context.userId, training_phone: admin ? "5568992316302" : "" };
     if (ai_key && !ai_key.startsWith("••")) row["ai_key"] = ai_key;
     if (data.ai_provider === "native") row["ai_key"] = null;

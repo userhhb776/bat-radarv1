@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listAgents, saveAgent, deleteAgent, agentConversations, talkToAgent, designAgent } from "@/lib/agents.functions";
 import { waList } from "@/lib/whatsapp.functions";
+import { AgentWizard } from "@/components/AgentWizard";
 
 export const Route = createFileRoute("/_authenticated/agentes")({
   head: () => ({ meta: [
@@ -44,7 +45,7 @@ function Page() {
           <h1 className="flex items-center gap-2 text-2xl font-bold"><Bot className="h-6 w-6" /> Agentes</h1>
           <Button onClick={() => setEdit({ ...blank })}><Plus className="mr-1 h-4 w-4" />Novo agente</Button>
         </div>
-        {edit && <Editor a={edit} admin={!!data?.admin} inst={inst} onClose={() => setEdit(null)} />}
+        {edit && <AgentWizard key={edit.id ?? "novo"} a={edit} admin={!!data?.admin} inst={inst} onClose={() => setEdit(null)} />}
         {!agents.length && !edit && <p className="text-muted-foreground">Nenhum agente ainda. Crie o primeiro e treine com suas regras.</p>}
         <div className="grid gap-3">
           {agents.map((a) => (
@@ -56,7 +57,7 @@ function Page() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label="Ativar agente" />
-                  <Button size="sm" variant="outline" onClick={() => setEdit({ ...a })}>Treinar</Button>
+                  <Button size="sm" variant="outline" onClick={() => setEdit({ ...a })}>Configurar</Button>
                   <Button size="sm" asChild><Link to="/agentes/$id" params={{ id: a.id }}>Abrir painel</Link></Button>
                 </div>
               </div>
@@ -65,85 +66,6 @@ function Page() {
         </div>
       </div>
     </AppShell>
-  );
-}
-
-function Editor({ a, admin, inst, onClose }: { a: A; admin: boolean; inst: Array<{ name: string; label: string }>; onClose: () => void }) {
-  const qc = useQueryClient();
-  const save = useServerFn(saveAgent);
-  const del = useServerFn(deleteAgent);
-  const [f, setF] = useState<A>(a);
-  const [busy, setBusy] = useState(false);
-  const set = (k: keyof A, v: any) => setF((p) => ({ ...p, [k]: v }));
-  async function submit() {
-    setBusy(true);
-    try { await save({ data: { ...f, id: f.id } as any }); toast.success("Agente salvo"); qc.invalidateQueries({ queryKey: ["agents"] }); onClose(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
-  }
-  const [mode, setMode] = useState<"chat" | "form">(a.id ? "form" : "chat");
-  return (
-    <div className="space-y-3 rounded-lg border bg-card p-4">
-      <div className="flex gap-2">
-        <Button type="button" size="sm" variant={mode === "chat" ? "default" : "outline"} onClick={() => setMode("chat")}>Modo chat</Button>
-        <Button type="button" size="sm" variant={mode === "form" ? "default" : "outline"} onClick={() => setMode("form")}>Formulário</Button>
-      </div>
-      {mode === "chat" && <DesignChat f={f} onDraft={(d) => setF((p) => ({ ...p, ...Object.fromEntries(Object.entries(d).filter(([, v]) => v !== "")) }))} />}
-      {mode === "chat" && f.name && <p className="text-xs text-muted-foreground">Rascunho: <b>{f.name}</b>. Veja e ajuste em "Formulário", escolha o número e salve.</p>}
-      {mode === "form" && <>
-      <Field label="Nome do agente"><Input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Vega" /></Field>
-      <Field label="Missão (o que ele faz)"><Textarea rows={2} value={f.mission} onChange={(e) => set("mission", e.target.value)} placeholder="Minerar clínicas sem site em Rio Branco, abordar e marcar reunião" /></Field>
-      <Field label="O que você vende agora"><Textarea rows={2} value={f.offer} onChange={(e) => set("offer", e.target.value)} placeholder="Sites a partir de R$ 600, gestão de Instagram..." /></Field>
-      <Field label="Empresas que você mais quer"><Textarea rows={2} value={f.ideal_client} onChange={(e) => set("ideal_client", e.target.value)} placeholder="Nota acima de 4.3, mais de 50 avaliações, sem site" /></Field>
-      <Field label="Regras rígidas (jeito de falar, o que nunca dizer)"><Textarea rows={4} value={f.rules} onChange={(e) => set("rules", e.target.value)} placeholder="Nunca falar preço na primeira mensagem. Falar como gente, curto..." /></Field>
-      {f.learned && <Field label="O que ele já aprendeu com você"><p className="whitespace-pre-wrap rounded bg-muted p-2 text-xs">{f.learned}</p></Field>}
-      <Field label="Número de WhatsApp do agente">
-        <select className="w-full rounded-md border bg-background p-2 text-sm" value={f.instance} onChange={(e) => set("instance", e.target.value)}>
-          <option value="">— escolha —</option>
-          {inst.map((i) => <option key={i.name} value={i.name}>{i.label}</option>)}
-        </select>
-      </Field>
-      <Field label="Inteligência">
-        <div className="flex gap-2">
-          <Button type="button" size="sm" variant={f.ai_provider === "native" ? "default" : "outline"} onClick={() => set("ai_provider", "native")}>Nativa (Argos)</Button>
-          <Button type="button" size="sm" variant={f.ai_provider === "custom" ? "default" : "outline"} onClick={() => set("ai_provider", "custom")}>Chave própria do Ollama</Button>
-        </div>
-        {f.ai_provider === "custom" && <Input className="mt-2" type="password" value={f.ai_key ?? ""} onChange={(e) => set("ai_key", e.target.value)} placeholder="Cole a chave do Ollama" />}
-      </Field>
-      <Toggle label="Responder clientes sozinho" v={f.auto_reply} on={(v) => set("auto_reply", v)} />
-      {admin && <Toggle label="Modo treinamento (falo com ele pelo +55 68 99231-6302)" v={f.training_mode} on={(v) => set("training_mode", v)} />}
-      <Toggle label="Agente ativo" v={f.active} on={(v) => set("active", v)} />
-      </>}
-      <div className="flex justify-between">
-        {f.id ? <Button variant="ghost" onClick={async () => { await del({ data: { id: f.id! } }); qc.invalidateQueries({ queryKey: ["agents"] }); onClose(); }}><Trash2 className="mr-1 h-4 w-4" />Excluir</Button> : <span />}
-        <div className="flex gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy || !f.name} onClick={submit}>{busy && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Salvar</Button></div>
-      </div>
-    </div>
-  );
-}
-
-function DesignChat({ f, onDraft }: { f: A; onDraft: (d: Partial<A>) => void }) {
-  const design = useServerFn(designAgent);
-  const [msgs, setMsgs] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function send() {
-    if (!text.trim() || busy) return;
-    const next = [...msgs, { role: "user" as const, content: text.trim() }];
-    setMsgs(next); setText(""); setBusy(true);
-    try {
-      const { name, mission, offer, ideal_client, rules, auto_reply } = f;
-      const r = await design({ data: { messages: next.slice(-20), current: { name, mission, offer, ideal_client, rules, auto_reply } } });
-      setMsgs([...next, { role: "assistant", content: r.reply }]); onDraft(r.agent);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
-  }
-  return (
-    <div className="space-y-2">
-      <div className="max-h-72 space-y-2 overflow-y-auto">
-        {!msgs.length && <p className="text-xs text-muted-foreground">Diga o que quer, ex: "Quero um agente que encontre academias sem site em Rio Branco, ofereça site por R$ 800 e fale de forma descontraída".</p>}
-        {msgs.map((m, i) => <div key={i} className={`rounded-lg p-2 text-sm ${m.role === "user" ? "ml-8 bg-primary text-primary-foreground" : "mr-8 bg-muted"}`}>{m.content}</div>)}
-      </div>
-      <div className="flex gap-2"><Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Descreva o agente ou peça mudanças..." /><Button disabled={busy} onClick={send}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button></div>
-    </div>
   );
 }
 
