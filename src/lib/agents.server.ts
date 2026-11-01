@@ -11,7 +11,7 @@ export type Agent = {
 export type BtxRule = { when: string; variants: string[]; audio_id?: string };
 export type Btx = { prompt?: string; rules?: BtxRule[] };
 export type Step = { title: string; goal: string; message: string };
-export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number; states?: string[]; btx_opening?: boolean; md_teste?: boolean };
+export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number; states?: string[]; btx_opening?: boolean; md_teste?: boolean; niches?: string[]; dias?: number[]; gap_min?: number; gap_max?: number };
 
 type Tool = { name: string; description: string; properties: Record<string, unknown>; required?: string[] };
 
@@ -264,7 +264,8 @@ export async function citiesFor(m: Miner, city?: unknown) {
 /** Minerador próprio do agente: carteira separada dos leads do dono. */
 export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: unknown; city?: unknown; limit?: unknown } = {}) {
   const m = (a.miner ?? {}) as Miner;
-  const niche = String(o.niche || m.niche || "").trim();
+  const pool = [...(m.niches ?? []), m.niche ?? ""].map((x) => String(x).trim()).filter(Boolean);
+  const niche = String(o.niche || pool[Math.floor(Math.random() * pool.length)] || "").trim();
   const states = (m.states ?? []).filter(Boolean);
   let cities = await citiesFor(m, o.city);
   if (!niche || !cities.length) return { erro: "Escolha o nicho e pelo menos um estado." };
@@ -305,13 +306,14 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   }
   const approach = !!m.auto_approach && !!a.instance && !!openingFor(a);
   let t = Date.now() + 2 * 60000;
-  const rows = fresh.map(({ photos, open: _o, ...x }) => { t += (6 + Math.random() * 9) * 60000; return { ...x, photos, qualification: qual({ ...x, photos, open: true } as any), user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
+  const g0 = m.gap_min ?? 6, g1 = Math.max(g0, m.gap_max ?? 15);
+  const rows = fresh.map(({ photos, open: _o, ...x }) => { t += (g0 + Math.random() * (g1 - g0)) * 60000; return { ...x, photos, qualification: qual({ ...x, photos, open: true } as any), user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
   if (rows.length) await sb.from("agent_leads").insert(rows as any);
   await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche})${approach ? " e agendou a abordagem" : ""}`);
   return { novas: rows.length, abordagem_agendada: approach };
 }
 
-const inWindow = (m: Miner = {}, d = new Date()) => { const h = (d.getUTCHours() + 19) % 24; const wd = new Date(d.getTime() - 5 * 3600000).getUTCDay(); return h >= (m.hora_inicio ?? 8) && h < (m.hora_fim ?? 18) && wd !== 0; };
+const inWindow = (m: Miner = {}, d = new Date()) => { const h = (d.getUTCHours() + 19) % 24; const wd = new Date(d.getTime() - 5 * 3600000).getUTCDay(); return h >= (m.hora_inicio ?? 8) && h < (m.hora_fim ?? 18) && (m.dias?.length ? m.dias.includes(wd) : wd !== 0); };
 
 /** Varredura simples: procura domínio próprio (.com.br/.com) com o nome da empresa. */
 export function siteGuesses(name: string) {
