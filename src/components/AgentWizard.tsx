@@ -58,7 +58,7 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
   }
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background"><div className="mx-auto max-w-3xl space-y-5 p-4 pb-24 sm:p-8">
       <div className="flex flex-wrap gap-1">
         {STEPS.map((s, i) => <button key={s} type="button" disabled={!f.id && i > 1} onClick={() => setStep(i)} className={`rounded-full px-2.5 py-1 text-xs ${i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}. {s}</button>)}
       </div>
@@ -95,18 +95,18 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
       {step === 5 && <div className="space-y-3">
         <F label="Nichos (separe por vírgula)"><Input defaultValue={m.niches.join(", ")} onBlur={(e) => sm("niches", e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10))} placeholder="Academia, Pilates, Clínica estética" /></F>
         <F label="Estados"><div className="flex flex-wrap gap-1">{STATES.map((s) => <button key={s} type="button" onClick={() => tog("states", s)} className={`rounded px-2 py-1 text-xs ${m.states.includes(s) ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{s}</button>)}</div></F>
-        <F label="Empresas por mineração"><Input type="number" min={1} max={60} value={m.daily} onChange={(e) => sm("daily", Number(e.target.value) || 15)} /></F>
+        <F label="Empresas por mineração"><Num v={m.daily} on={(n) => sm("daily", n)} /></F>
         <p className="text-xs text-muted-foreground">Filtros de fábrica: sem site próprio, aberta, com WhatsApp, 5+ avaliações e 3+ fotos.</p>
       </div>}
 
       {step === 6 && <div className="space-y-3">
         <F label="Dias de disparo"><div className="flex flex-wrap gap-1">{DIAS.map((d, i) => <button key={d} type="button" onClick={() => tog("dias", i)} className={`rounded px-2 py-1 text-xs ${m.dias.includes(i) ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{d}</button>)}</div></F>
         <div className="grid grid-cols-2 gap-2">
-          <F label="Começa às (h)"><Input type="number" min={0} max={23} value={m.hora_inicio} onChange={(e) => sm("hora_inicio", Number(e.target.value))} /></F>
-          <F label="Para às (h)"><Input type="number" min={1} max={24} value={m.hora_fim} onChange={(e) => sm("hora_fim", Number(e.target.value))} /></F>
-          <F label="Entre empresas: mín. (min)"><Input type="number" min={1} value={m.gap_min} onChange={(e) => sm("gap_min", Number(e.target.value) || 1)} /></F>
-          <F label="Entre empresas: máx. (min)"><Input type="number" min={1} value={m.gap_max} onChange={(e) => sm("gap_max", Number(e.target.value) || 1)} /></F>
-          <F label="Limite por dia"><Input type="number" min={1} max={200} value={m.limite_dia} onChange={(e) => sm("limite_dia", Number(e.target.value) || 30)} /></F>
+          <F label="Começa às (h)"><Num v={m.hora_inicio} on={(n) => sm("hora_inicio", n)} /></F>
+          <F label="Para às (h)"><Num v={m.hora_fim} on={(n) => sm("hora_fim", n)} /></F>
+          <F label="Entre empresas: mín. (min)"><Num v={m.gap_min} on={(n) => sm("gap_min", n)} /></F>
+          <F label="Entre empresas: máx. (min)"><Num v={m.gap_max} on={(n) => sm("gap_max", n)} /></F>
+          <F label="Limite por dia"><Num v={m.limite_dia} on={(n) => sm("limite_dia", n)} /></F>
         </div>
         <F label="Tempo entre mensagens na conversa"><div className="flex gap-2">{(["rapido", "equilibrado", "calmo"] as const).map((p) => <Button key={p} size="sm" type="button" variant={pace === p ? "default" : "outline"} onClick={() => setPace(p)}>{p === "rapido" ? "Rápido" : p === "equilibrado" ? "Equilibrado" : "Calmo (mais humano)"}</Button>)}</div></F>
         <Tg label="Abordar sozinho as empresas mineradas" v={m.auto_approach} on={(v) => sm("auto_approach", v)} />
@@ -135,7 +135,7 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
           {step < 7 && <Button disabled={busy} onClick={next}>{busy && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Avançar</Button>}
         </div>
       </div>
-    </div>
+    </div></div>
   );
 }
 
@@ -181,3 +181,8 @@ function Instruct({ f, id, onDraft }: { f: any; id?: string; onDraft: (d: any) =
 const F = ({ label, children }: { label: string; children: React.ReactNode }) => <div className="space-y-1"><Label>{label}</Label>{children}</div>;
 const Tg = ({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) => <label className="flex items-center justify-between gap-3 text-sm"><span>{label}</span><input type="checkbox" checked={v} onChange={(e) => on(e.target.checked)} className="h-4 w-4" /></label>;
 const Sum = ({ k, v }: { k: string; v: string }) => <div className="rounded-md bg-muted p-2"><span className="text-xs text-muted-foreground">{k}</span><div className="whitespace-pre-wrap">{v || "—"}</div></div>;
+
+function Num({ v, on }: { v: number; on: (n: number) => void }) {
+  const [t, setT] = useState(String(v ?? ""));
+  return <Input inputMode="numeric" value={t} onChange={(e) => setT(e.target.value.replace(/[^0-9]/g, ""))} onBlur={() => { const n = Number(t); if (t !== "" && n >= 0) on(n); else setT(String(v ?? "")); }} />;
+}
