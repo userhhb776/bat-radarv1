@@ -131,7 +131,9 @@ export type Database = {
           name: string
           niche: string
           phone: string | null
+          photos: number | null
           place_id: string
+          qualification: Json | null
           rating: number | null
           reviews_count: number
           send_at: string | null
@@ -150,7 +152,9 @@ export type Database = {
           name: string
           niche?: string
           phone?: string | null
+          photos?: number | null
           place_id: string
+          qualification?: Json | null
           rating?: number | null
           reviews_count?: number
           send_at?: string | null
@@ -169,7 +173,9 @@ export type Database = {
           name?: string
           niche?: string
           phone?: string | null
+          photos?: number | null
           place_id?: string
+          qualification?: Json | null
           rating?: number | null
           reviews_count?: number
           send_at?: string | null

@@ -216,13 +216,27 @@ function Miner({ id, a, leads, events }: { id: string; a: any; leads: any[]; eve
           <Button size="sm" variant="outline" disabled={!sel.size || busy} onClick={() => wrap(() => move({ data: { id, leadIds: [...sel] } }), (r) => { setSelSet(new Set()); return `${r.movidos} movidas para seus leads`; })}>Mover {sel.size || ""} pros meus leads</Button>
         </div>
         <div className="max-h-96 space-y-1 overflow-y-auto">
-          {visible.map((l) => (
-            <label key={l.id} className="flex items-center gap-2 rounded p-1.5 text-sm hover:bg-muted">
-              <input type="checkbox" checked={sel.has(l.id)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(l.id) : n.delete(l.id); setSelSet(n); }} />
-              <span className="flex-1 truncate">{l.name}<span className="ml-1 text-xs text-muted-foreground">{l.city} · ⭐{l.rating ?? "-"} ({l.reviews_count})</span></span>
-              <span className="rounded bg-muted px-1.5 text-[11px]">{l.status}</span>
-            </label>
-          ))}
+          {!visible.length && <p className="text-xs text-muted-foreground">Nenhuma empresa ainda. Clique em "Minerar agora".</p>}
+          {visible.map((l) => {
+            const q = l.qualification ?? {};
+            return (
+              <details key={l.id} className="rounded border p-1.5 text-sm">
+                <summary className="flex cursor-pointer list-none items-center gap-2">
+                  <input type="checkbox" disabled={l.status === "teste"} checked={sel.has(l.id)} onClick={(e) => e.stopPropagation()} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(l.id) : n.delete(l.id); setSelSet(n); }} />
+                  <span className="min-w-0 flex-1 truncate">{l.name}<span className="ml-1 text-xs text-muted-foreground">{l.city} · ⭐{l.rating ?? "-"} ({l.reviews_count}){l.photos != null ? ` · ${l.photos} fotos` : ""}</span></span>
+                  <span className={`rounded px-1.5 text-[11px] ${l.status === "teste" ? "bg-accent text-accent-foreground" : "bg-muted"}`}>{l.status === "teste" ? "simulação" : l.status}</span>
+                </summary>
+                <div className="mt-2 grid gap-1 rounded bg-muted p-2 text-xs">
+                  <div><b>Telefone:</b> {l.phone ?? "-"} · <b>Nicho:</b> {l.niche}</div>
+                  <div><b>Endereço:</b> {l.address ?? "-"}{q.estado ? ` · Estados buscados: ${q.estado}` : ""}</div>
+                  <div><b>Nota:</b> ⭐{l.rating ?? "-"} · <b>Avaliações:</b> {l.reviews_count} · <b>Fotos:</b> {l.photos ?? "?"} · <b>Aberta:</b> {q.aberta === false ? "não" : "sim"}</div>
+                  <div><b>Site:</b> {q.site ?? (l.website ? `só rede social (${l.website})` : "sem site")} · <b>Varredura:</b> {q.varredura_web ?? "-"}</div>
+                  {l.maps_url && <a className="text-primary underline" href={l.maps_url} target="_blank" rel="noreferrer">Ver no Google Maps</a>}
+                  {q.abordagem && <div className="mt-1 rounded border bg-background p-2"><b>Abordagem {q.via_btx ? "(B-T6X)" : "(roteiro)"}:</b> {q.abordagem}</div>}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </div>
     </div>

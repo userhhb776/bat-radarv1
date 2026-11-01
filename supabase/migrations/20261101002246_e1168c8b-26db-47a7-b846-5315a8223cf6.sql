@@ -1,0 +1,1 @@
+alter table public.agent_leads add column if not exists photos int, add column if not exists qualification jsonb;

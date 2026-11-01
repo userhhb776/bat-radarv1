@@ -292,14 +292,21 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   for (const x of fresh) { if (keep.length >= limit) break; if (await hasOwnSite(x.name, x.city ?? "")) withSite++; else keep.push(x); }
   fresh = keep;
   if (weak || withSite) await logEvent(sb, a, "filtrou", `Descartou ${weak} perfis fracos (poucas fotos/avaliações ou fechados)${withSite ? ` e ${withSite} que já têm site na internet` : ""}`);
+  const qual = (x: (typeof fresh)[number]) => ({
+    estado: states.join(", ") || null, nota: x.rating ?? null, avaliacoes: x.reviews_count, fotos: x.photos, aberta: x.open,
+    site: x.website ? `só rede social (${x.website})` : "sem site", varredura_web: "nenhum domínio próprio encontrado",
+    abordagem: fillTemplate(openingFor(a), x), via_btx: !!m.btx_opening, minerado_em: new Date().toISOString(),
+  });
   if (teste) {
     for (const x of fresh) await logEvent(sb, a, "teste", `${x.name} (${x.city ?? ""}) ⭐${x.rating ?? "-"} · ${x.reviews_count} aval. · ${x.photos} fotos${x.website ? " · só rede social" : " · sem site"} → abordaria: "${fillTemplate(openingFor(a), x).slice(0, 220)}"`);
+    const trows = fresh.map(({ photos, open: _o, ...x }) => ({ ...x, photos, qualification: qual({ ...x, photos, open: true } as any), user_id: a.user_id, agent_id: a.id, status: "teste", send_at: null }));
+    if (trows.length) await sb.from("agent_leads").insert(trows as any);
     return { novas: fresh.length, teste: true };
   }
   const approach = !!m.auto_approach && !!a.instance && !!openingFor(a);
   let t = Date.now() + 2 * 60000;
-  const rows = fresh.map(({ photos: _p, open: _o, ...x }) => { t += (6 + Math.random() * 9) * 60000; return { ...x, user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
-  if (rows.length) await sb.from("agent_leads").insert(rows);
+  const rows = fresh.map(({ photos, open: _o, ...x }) => { t += (6 + Math.random() * 9) * 60000; return { ...x, photos, qualification: qual({ ...x, photos, open: true } as any), user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
+  if (rows.length) await sb.from("agent_leads").insert(rows as any);
   await logEvent(sb, a, "minerou", `Encontrou ${rows.length} empresas novas (${niche})${approach ? " e agendou a abordagem" : ""}`);
   return { novas: rows.length, abordagem_agendada: approach };
 }

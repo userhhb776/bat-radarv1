@@ -19,7 +19,7 @@ export const agentCockpit = createServerFn({ method: "POST" })
     const a = await loadAgent(sb, data.id);
     const [ev, leads, msgs, pauses, audios] = await Promise.all([
       sb.from("agent_events").select("kind,text,created_at").eq("agent_id", data.id).order("created_at", { ascending: false }).limit(40),
-      sb.from("agent_leads").select("id,name,phone,city,niche,rating,reviews_count,website,status,send_at,created_at").eq("agent_id", data.id).order("created_at", { ascending: false }).limit(300),
+      sb.from("agent_leads").select("id,name,phone,city,niche,rating,reviews_count,website,address,maps_url,photos,qualification,status,send_at,created_at").eq("agent_id", data.id).order("created_at", { ascending: false }).limit(300),
       sb.from("agent_messages").select("id,phone,contact_name,direction,body,hot,manual,created_at").eq("agent_id", data.id).order("created_at", { ascending: false }).limit(400),
       sb.from("agent_pauses").select("phone").eq("agent_id", data.id),
       sb.from("agent_audios").select("id,title,trigger,created_at").eq("agent_id", data.id).order("created_at"),
