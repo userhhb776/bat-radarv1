@@ -198,7 +198,8 @@ export function splitBubbles(t: string) {
 
 const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
 export function paceDelayMs(pace: string | undefined, rnd = Math.random()) {
-  const [lo, hi] = PACE[pace ?? ""] ?? PACE["equilibrado"]!;
+  const c = /^s:(\d+)-(\d+)$/.exec(pace ?? "");
+  const [lo, hi] = c ? [Number(c[1]), Math.max(Number(c[1]), Number(c[2]))] : PACE[pace ?? ""] ?? PACE["equilibrado"]!;
   return Math.round((lo + (hi - lo) * rnd) * 1000);
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -282,7 +283,7 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const weak = before - found.length;
   const ids = found.map((x) => x.place_id);
   const [{ data: mine }, { data: owner }] = await Promise.all([
-    sb.from("agent_leads").select("place_id").eq("agent_id", a.id).in("place_id", ids),
+    sb.from("agent_leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
     sb.from("leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
   ]);
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
@@ -335,6 +336,12 @@ async function hasOwnSite(name: string, city: string) {
   return false;
 }
 
+/** Telefone inválido ou sem WhatsApp → vai para REVISÃO EMP. */
+export function invalidPhone(err: string, phone: string | null) {
+  const d = (phone ?? "").replace(/\D/g, "");
+  return d.length < 10 || /exists["']?\s*:\s*false|not.*whatsapp|n[aã]o.*whatsapp|invalid|jid|400/i.test(err);
+}
+
 /** Envia as abordagens agendadas dos agentes (chamado pelo agendador). */
 export async function processAgentQueue(sb: SupabaseClient) {
   const today = new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10) + "T05:00:00Z";
@@ -365,7 +372,8 @@ export async function processAgentQueue(sb: SupabaseClient) {
       await logEvent(sb, ag, "abordou", `Mandou abordagem para ${l.name}`);
       sent++;
     } catch (e) {
-      await sb.from("agent_leads").update({ status: "erro" }).eq("id", l.id);
+      const msg = e instanceof Error ? e.message : "";
+      await sb.from("agent_leads").update({ status: invalidPhone(msg, l.phone) ? "revisao" : "erro" }).eq("id", l.id);
       await logEvent(sb, ag, "erro", `Falhou com ${l.name}: ${e instanceof Error ? e.message : "erro"}`);
     }
   }

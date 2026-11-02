@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { searchPlaces } from "@/lib/places.functions";
 import { leadsKey, listLeads } from "@/lib/leads";
+import { supabase } from "@/integrations/supabase/client";
 import { opportunityOf, type PlaceLead } from "@/lib/types";
 import { NICHE_GROUPS, NICHES, isSocialLink } from "@/lib/niches";
 
@@ -125,6 +126,8 @@ function BuscarPage() {
     return labels;
   }, [results, site, minReviews, maxReviews, opp]);
 
+  const { data: agentTaken = [] } = useQuery({ queryKey: ["agent-taken"], queryFn: async () => { const { data } = await supabase.from("agent_leads").select("place_id, agents(name)").neq("status", "teste").limit(5000); return (data ?? []) as any[]; } });
+  const agentMap = useMemo(() => new Map(agentTaken.map((r) => [r.place_id, r.agents?.name ?? "agente"])), [agentTaken]);
   const savedMap = useMemo(() => new Map(saved.map((s) => [s.place_id, s])), [saved]);
   const semSite = results.filter((r) => !r.website).length;
   const soSocial = results.filter((r) => isSocialLink(r.website)).length;
@@ -262,7 +265,7 @@ function BuscarPage() {
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((l) => (
-          <LeadCard key={l.placeId} lead={l} saved={savedMap.has(l.placeId)} onOpen={() => setOpen(l)} />
+          <LeadCard key={l.placeId} lead={l} saved={savedMap.has(l.placeId)} agent={agentMap.get(l.placeId)} onOpen={() => setOpen(l)} />
         ))}
       </div>
 

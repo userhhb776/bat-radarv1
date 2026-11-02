@@ -30,7 +30,7 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
   const [steps, setSteps] = useState<Step[]>(a.script_steps?.length ? a.script_steps : [{ title: "Abordagem inicial", goal: "Primeiro contato", message: "" }]);
   const m0 = a.miner ?? {};
   const [m, setM] = useState<any>({ niches: m0.niches ?? (m0.niche ? [m0.niche] : []), states: m0.states ?? [], daily: m0.daily ?? 15, auto_approach: m0.auto_approach ?? true, btx_opening: m0.btx_opening ?? false, dias: m0.dias ?? [1, 2, 3, 4, 5], hora_inicio: m0.hora_inicio ?? 8, hora_fim: m0.hora_fim ?? 18, gap_min: m0.gap_min ?? 6, gap_max: m0.gap_max ?? 15, limite_dia: m0.limite_dia ?? 30 });
-  const [pace, setPace] = useState<"rapido" | "equilibrado" | "calmo">(a.pace ?? "calmo");
+  const [pace, setPace] = useState<string>(a.pace ?? "calmo");
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const sm = (k: string, v: any) => setM((p: any) => ({ ...p, [k]: v }));
   const tog = (k: string, x: any) => sm(k, m[k].includes(x) ? m[k].filter((y: any) => y !== x) : [...m[k], x]);
@@ -108,7 +108,8 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
           <F label="Entre empresas: máx. (min)"><Num v={m.gap_max} on={(n) => sm("gap_max", n)} /></F>
           <F label="Limite por dia"><Num v={m.limite_dia} on={(n) => sm("limite_dia", n)} /></F>
         </div>
-        <F label="Tempo entre mensagens na conversa"><div className="flex gap-2">{(["rapido", "equilibrado", "calmo"] as const).map((p) => <Button key={p} size="sm" type="button" variant={pace === p ? "default" : "outline"} onClick={() => setPace(p)}>{p === "rapido" ? "Rápido" : p === "equilibrado" ? "Equilibrado" : "Calmo (mais humano)"}</Button>)}</div></F>
+        <F label="Tempo entre mensagens na conversa (segundos)"><div className="flex flex-wrap gap-2">{(["rapido", "equilibrado", "calmo"] as const).map((p) => <Button key={p} size="sm" type="button" variant={pace === p ? "default" : "outline"} onClick={() => setPace(p)}>{p === "rapido" ? "Rápido" : p === "equilibrado" ? "Equilibrado" : "Calmo"}</Button>)}<Button size="sm" type="button" variant={pace.startsWith("s:") ? "default" : "outline"} onClick={() => setPace("s:30-90")}>Personalizado</Button></div>
+          {pace.startsWith("s:") && <div className="mt-2 grid grid-cols-2 gap-2"><F label="Mín. (segundos)"><Num v={Number(pace.slice(2).split("-")[0])} on={(n) => setPace(`s:${n}-${pace.slice(2).split("-")[1]}`)} /></F><F label="Máx. (segundos)"><Num v={Number(pace.slice(2).split("-")[1])} on={(n) => setPace(`s:${pace.slice(2).split("-")[0]}-${n}`)} /></F><p className="col-span-2 text-xs text-muted-foreground">Ex.: 120 = 2 minutos.</p></div>}</F>
         <Tg label="Abordar sozinho as empresas mineradas" v={m.auto_approach} on={(v) => sm("auto_approach", v)} />
         <Tg label="Responder clientes sozinho" v={f.auto_reply} on={(v) => set("auto_reply", v)} />
       </div>}
