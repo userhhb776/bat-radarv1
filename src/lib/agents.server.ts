@@ -39,7 +39,8 @@ const CLIENT_TOOLS: Tool[] = [
 ];
 
 function brief(a: Agent) {
-  return `Você é ${a.name}, agente de vendas que trabalha para o Antonio.
+  return `Você é ${a.name}, agente de vendas da equipe responsável pelo negócio.
+IDENTIDADE: seu nome é exclusivamente ${a.name}. Nunca use o nome do dono como se fosse seu e nunca altere seu próprio nome.
 MISSÃO: ${a.mission || "prospectar e conversar com empresas"}
 O QUE VENDE (adapte-se, não é sempre site): ${a.offer || "pergunte ao dono"}
 CLIENTE IDEAL: ${a.ideal_client || "não definido"}
@@ -145,14 +146,27 @@ export async function agentClientReply(sb: SupabaseClient, a: Agent, fallbackKey
   const { data: auds } = await sb.from("agent_audios").select("id,title,trigger").eq("agent_id", a.id);
   const audios = (auds ?? []) as Array<{ id: string; title: string; trigger: string }>;
   const tone = await scriptsTone(sb, a.user_id);
+  const phoneDigits = digits(phone);
+  const phoneSuffix = phoneDigits.slice(-8);
+  const { data: lead } = phoneSuffix.length >= 6
+    ? await sb.from("agent_leads").select("name,niche,city,phone,qualification").eq("agent_id", a.id).eq("user_id", a.user_id).like("phone", `%${phoneSuffix}%`).limit(1).maybeSingle()
+    : { data: null };
+  const companyName = String((lead as any)?.name ?? "").trim();
+  const companyNiche = String((lead as any)?.niche ?? "").trim();
+  const companyCity = String((lead as any)?.city ?? "").trim();
   const sys = `${brief(a)}
-Você está no WhatsApp com ${contactName || "um cliente"}, como se fosse o próprio Antonio digitando no celular. Já foram ${outs} mensagens suas nesta conversa — descubra em que etapa do roteiro vocês estão e avance só uma etapa por vez.
+Você está conversando pelo WhatsApp como ${a.name}, integrante da equipe. Sua identidade é fixa: ${a.name}. O dono é outra pessoa; nunca diga que você é Antonio nem use o nome dele como seu.
+EMPRESA ATENDIDA: ${companyName || "não identificada"}.
+SEGMENTO: ${companyNiche || "não identificado"}.
+CIDADE: ${companyCity || "não identificada"}.
+Use esses dados naturalmente. Não pergunte qual é o ramo, o que a empresa faz ou o nome da empresa quando já estiverem informados. Já foram ${outs} mensagens suas nesta conversa — descubra em que etapa do roteiro vocês estão e avance só uma etapa por vez.
 JEITO DE FALAR (obrigatório):
 - Mensagens curtas como no celular. Se precisar de mais de uma ideia, separe em até 3 balões usando uma linha em branco entre eles.
 - Português falado do Brasil, informal na medida, sem formalidade de e-mail. Pode errar levemente a pontuação, sem exagero.
 - Responda exatamente o que perguntaram e termine com no máximo UMA pergunta.
 - Nunca se reapresente nem repita a abertura. Continue do histórico.
-- PROIBIDO: "BatRadar", dizer que é assistente/IA/robô, "presença online", "visibilidade", "soluções", "alavancar", "transformação digital", listas com marcadores, textos de propaganda, emojis em toda frase.
+- PROIBIDO: "BatRadar", afirmar que é o dono, trocar seu nome por outro, "presença online", "visibilidade", "soluções", "alavancar", "transformação digital", listas com marcadores, textos de propaganda, emojis em toda frase.
+- Se perguntarem se você é IA/robô, não minta nem finja ser uma pessoa humana: responda casualmente que é o assistente virtual da equipe, por exemplo: "Kkk sou o assistente virtual da equipe do ${a.name}, mas consigo te ajudar por aqui 😄". Em seguida, retome o assunto da empresa sem formalidade.
 - Não invente preço, prazo ou desconto; se perguntarem, diga que confirma e chame avisar_dono.
 ${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; aí responda com texto vazio ou bem curto):\n${audios.map((x) => `- id ${x.id}: "${x.title}" — enviar quando: ${x.trigger || x.title}`).join("\n")}` : ""}
 ${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
@@ -161,6 +175,17 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
   let hot = false; let reason = ""; let audioId = ""; let fixed: string[] = [];
   const rules = a.btx?.rules ?? [];
+  // Primeiro tenta resolver localmente as situações cadastradas no B-T6X.
+  // Quando há correspondência clara, a resposta pronta é devolvida sem dar ao LLM
+  // oportunidade de substituí-la por texto genérico.
+  const latestInbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
+  const matched = matchBtxRule(latestInbound, rules);
+  if (matched) {
+    const pick = pickVariant(matched.variants);
+    if (pick) fixed = splitBubbles(fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche }));
+    if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
+    if (fixed.length || audioId) return { replies: fixed, hot: false, reason: "", audioId };
+  }
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
@@ -177,6 +202,38 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
     }
   }
   return { replies: [] as string[], hot, reason, audioId };
+}
+
+const BTX_STOP = new Set(["quando","cliente","pergunta","perguntar","fala","disser","dizer","responde","responder","sobre","para","com","uma","um","que","qual","como","voce","voces","ele","ela","isso","esta","estou","estao","tem","ter","ser","sou","do","da","de","dos","das","no","na","nos","nas","e","ou"]);
+function btxTerms(value: string) {
+  return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9\\s]/g, " ").split(/\\s+/)
+    .filter((word) => word.length > 2 && !BTX_STOP.has(word));
+}
+const BTX_SYNONYMS = [
+  ["preco","valor","custa","custaria","orcamento","pagamento"],
+  ["ia","robo","bot","inteligencia","artificial","assistente"],
+  ["site","website","pagina","catalogo","loja","virtual"],
+  ["endereco","localizacao","onde","fica"],
+  ["horario","abre","aberto","funciona","fecha"],
+  ["humano","pessoa","atendente","dono","responsavel"],
+];
+function matchBtxRule(message: string, rules: BtxRule[]) {
+  const incoming = new Set(btxTerms(message));
+  if (!incoming.size) return null;
+  for (const group of BTX_SYNONYMS) if (group.some((x) => incoming.has(x))) group.forEach((x) => incoming.add(x));
+  let best: { rule: BtxRule; score: number } | null = null;
+  for (const rule of rules) {
+    const terms = [...new Set(btxTerms(rule.when ?? ""))];
+    if (!terms.length) continue;
+    const expanded = new Set(terms);
+    for (const group of BTX_SYNONYMS) if (group.some((x) => terms.includes(x))) group.forEach((x) => expanded.add(x));
+    const overlap = [...expanded].filter((x) => incoming.has(x)).length;
+    const score = overlap / Math.max(1, Math.min(expanded.size, 4));
+    const required = expanded.size <= 2 ? 1 : 2;
+    if (overlap >= required && score >= 0.34 && (!best || score > best.score)) best = { rule, score };
+  }
+  return best?.rule ?? null;
 }
 
 export function pickVariant(v: string[], rnd = Math.random()) {
