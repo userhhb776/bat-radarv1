@@ -196,7 +196,15 @@ export function splitBubbles(t: string) {
   return t.trim().split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).slice(0, 3);
 }
 
-const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
+/** Tempo entre os balões da abordagem inicial (segundos configurados no agente); undefined = padrão. */
+export function openGapMs(a: { miner?: any }) {
+  const lo = Number(a.miner?.open_gap_min), hi = Number(a.miner?.open_gap_max);
+  if (!lo) return undefined;
+  const top = Math.max(lo, hi || lo);
+  return () => (lo + Math.random() * (top - lo)) * 1000;
+}
+
+export const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
 export function paceDelayMs(pace: string | undefined, rnd = Math.random()) {
   const c = /^s:(\d+)-(\d+)$/.exec(pace ?? "");
   const [lo, hi] = c ? [Number(c[1]), Math.max(Number(c[1]), Number(c[2]))] : PACE[pace ?? ""] ?? PACE["equilibrado"]!;

@@ -1,12 +1,15 @@
 import { normalizeBR } from "@/lib/phone";
-export async function evoSend(instance: string, phone: string, texts: string[]) {
+/** gapMs: se informado, espera esse tempo (sorteado pela função) entre um balão e o próximo. */
+export async function evoSend(instance: string, phone: string, texts: string[], gapMs?: () => number) {
   const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   const number = normalizeBR(phone);
   if (!number) throw new Error("Telefone inválido.");
   // acorda o servidor gratuito antes de enviar
   await fetch(`${base}/`, { signal: AbortSignal.timeout(60000) }).catch(() => null);
-  for (const text of texts.map((t) => t.trim()).filter(Boolean)) {
+  const list = texts.map((t) => t.trim()).filter(Boolean);
+  for (const [i, text] of list.entries()) {
+    if (i > 0 && gapMs) await new Promise((r) => setTimeout(r, gapMs()));
     const delay = Math.min(8000, 1200 + text.length * 35 + Math.floor(Math.random() * 1500));
     const res = await fetch(`${base}/message/sendText/${encodeURIComponent(instance)}`, {
       method: "POST",

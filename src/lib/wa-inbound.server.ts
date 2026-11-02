@@ -26,8 +26,15 @@ export async function registerInbound(instance: string) {
 
 /** Compara telefones tolerando o 9º dígito e formatos diferentes. */
 export function samePhone(a: string, b: string) {
-  const d = (s: string) => s.replace(/\D/g, "").replace(/^0+/, "");
+  // reduz para DDD + 8 dígitos (sem 55 e sem o 9º dígito)
+  const d = (s: string) => {
+    let x = s.replace(/\D/g, "").replace(/^0+/, "");
+    if (x.length >= 12 && x.startsWith("55")) x = x.slice(2);
+    if (x.length === 11 && x[2] === "9") x = x.slice(0, 2) + x.slice(3);
+    return x;
+  };
   const x = d(a), y = d(b);
   if (!x || !y) return false;
-  return x.slice(-8) === y.slice(-8) && (x.length < 10 || y.length < 10 || x.slice(-11, -9) === y.slice(-11, -9) || x.slice(-10, -8) === y.slice(-10, -8));
+  if (x.length < 10 || y.length < 10) return x.slice(-8) === y.slice(-8);
+  return x === y;
 }
