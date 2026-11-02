@@ -373,7 +373,7 @@ export async function processAgentQueue(sb: SupabaseClient) {
     try {
       const { evoSend } = await import("@/lib/evolution.server");
       const texts = splitBubbles(fillTemplate(step, l));
-      await evoSend(ag.instance, l.phone, texts);
+      await evoSend(ag.instance, l.phone, texts, openGapMs(ag));
       const phone = digits(l.phone);
       for (const b of texts) await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: b });
       await sb.from("agent_leads").update({ status: "abordado" }).eq("id", l.id);
