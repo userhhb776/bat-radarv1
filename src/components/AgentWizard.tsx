@@ -29,7 +29,7 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
   const [f, setF] = useState<any>({ ai_provider: "native", model: "gpt-oss:120b", auto_reply: true, active: false, training_mode: false, mission: "", offer: "", rules: "", ideal_client: "", instance: "", ...a });
   const [steps, setSteps] = useState<Step[]>(a.script_steps?.length ? a.script_steps : [{ title: "Abordagem inicial", goal: "Primeiro contato", message: "" }]);
   const m0 = a.miner ?? {};
-  const [m, setM] = useState<any>({ niches: m0.niches ?? (m0.niche ? [m0.niche] : []), states: m0.states ?? [], daily: m0.daily ?? 15, auto_approach: m0.auto_approach ?? true, btx_opening: m0.btx_opening ?? false, dias: m0.dias ?? [1, 2, 3, 4, 5], hora_inicio: m0.hora_inicio ?? 8, hora_fim: m0.hora_fim ?? 18, gap_min: m0.gap_min ?? 6, gap_max: m0.gap_max ?? 15, limite_dia: m0.limite_dia ?? 30 });
+  const [m, setM] = useState<any>({ niches: m0.niches ?? (m0.niche ? [m0.niche] : []), states: m0.states ?? [], daily: m0.daily ?? 15, auto_approach: m0.auto_approach ?? true, btx_opening: m0.btx_opening ?? false, dias: m0.dias ?? [1, 2, 3, 4, 5], hora_inicio: m0.hora_inicio ?? 8, hora_fim: m0.hora_fim ?? 18, gap_min: m0.gap_min ?? 6, gap_max: m0.gap_max ?? 15, limite_dia: m0.limite_dia ?? 30, open_gap_min: m0.open_gap_min ?? 12, open_gap_max: m0.open_gap_max ?? 17 });
   const [pace, setPace] = useState<string>(a.pace ?? "calmo");
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const sm = (k: string, v: any) => setM((p: any) => ({ ...p, [k]: v }));
