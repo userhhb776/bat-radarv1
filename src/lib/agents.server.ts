@@ -218,7 +218,7 @@ const BTX_SYNONYMS = [
   ["horario","abre","aberto","funciona","fecha"],
   ["humano","pessoa","atendente","dono","responsavel"],
 ];
-function matchBtxRule(message: string, rules: BtxRule[]) {
+export function matchBtxRule(message: string, rules: BtxRule[]) {
   const incoming = new Set(btxTerms(message));
   if (!incoming.size) return null;
   for (const group of BTX_SYNONYMS) if (group.some((x) => incoming.has(x))) group.forEach((x) => incoming.add(x));
@@ -229,8 +229,8 @@ function matchBtxRule(message: string, rules: BtxRule[]) {
     const expanded = new Set(terms);
     for (const group of BTX_SYNONYMS) if (group.some((x) => terms.includes(x))) group.forEach((x) => expanded.add(x));
     const overlap = [...expanded].filter((x) => incoming.has(x)).length;
-    const score = overlap / Math.max(1, Math.min(expanded.size, 4));
-    const required = expanded.size <= 2 ? 1 : 2;
+    const score = overlap / Math.max(1, terms.length);
+    const required = terms.length <= 2 ? 1 : 2;
     if (overlap >= required && score >= 0.34 && (!best || score > best.score)) best = { rule, score };
   }
   return best?.rule ?? null;
