@@ -14,7 +14,7 @@ export function OpportunityBadge({ lead }: { lead: PlaceLead }) {
   return <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", oppStyle[o.level])}>{o.label}</span>;
 }
 
-export function LeadCard({ lead, saved, onOpen }: { lead: PlaceLead; saved?: boolean; onOpen: () => void }) {
+export function LeadCard({ lead, saved, agent, onOpen }: { lead: PlaceLead; saved?: boolean; agent?: string; onOpen: () => void }) {
   return (
     <Button
       variant="outline"
@@ -23,6 +23,7 @@ export function LeadCard({ lead, saved, onOpen }: { lead: PlaceLead; saved?: boo
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 break-words text-base font-semibold leading-snug">{lead.name}</h3>
+        {agent && <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">agente usad: {agent}</span>}
         {saved && (
           <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
             <Check className="h-3 w-3" /> Salvo

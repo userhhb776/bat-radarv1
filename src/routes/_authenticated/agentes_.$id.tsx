@@ -55,6 +55,7 @@ function Cockpit() {
             <TabsTrigger value="conversas">Conversas</TabsTrigger>
             <TabsTrigger value="minerador">Minerador</TabsTrigger>
             <TabsTrigger value="roteiro">Roteiro e jeito</TabsTrigger>
+            <TabsTrigger value="revisao">REVISÃO EMP</TabsTrigger>
             <TabsTrigger value="audios">Áudios</TabsTrigger>
             <TabsTrigger value="estudo">Estudar prints</TabsTrigger>
             <TabsTrigger value="falar">Dar ordens</TabsTrigger>
@@ -64,6 +65,7 @@ function Cockpit() {
           <TabsContent value="conversas"><Chats id={id} messages={data.messages as any[]} paused={data.paused as string[]} /></TabsContent>
           <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} events={data.events as any[]} /></TabsContent>
           <TabsContent value="roteiro"><Script id={id} a={a} /></TabsContent>
+          <TabsContent value="revisao"><Revisao leads={data.leads as any[]} /></TabsContent>
           <TabsContent value="audios"><Audios id={id} audios={data.audios as any[]} /></TabsContent>
           <TabsContent value="estudo"><Study id={id} learned={a.learned} /></TabsContent>
           <TabsContent value="falar"><Talk id={id} name={a.name} /></TabsContent>
@@ -438,4 +440,14 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
       <p className="text-xs text-muted-foreground">Dica: use {"{nome}"} para o nome da empresa. Para responder com áudio, grave-o antes na aba Áudios.</p>
     </div>
   );
+}
+
+function Revisao({ leads }: { leads: any[] }) {
+  const rows = leads.filter((l) => l.status === "revisao" || l.status === "erro");
+  if (!rows.length) return <p className="p-4 text-sm text-muted-foreground">Nenhuma empresa para revisar. Aqui aparecem as que o agente não conseguiu chamar (telefone inválido ou sem WhatsApp).</p>;
+  return <div className="space-y-2">{rows.map((l) => <div key={l.id} className="rounded-md border p-3 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-2"><b>{l.name}</b><span className="rounded bg-muted px-1.5 text-[11px]">{l.status === "revisao" ? "telefone inválido / sem WhatsApp" : "falha no envio"}</span></div>
+    <div className="text-muted-foreground">{l.phone ?? "sem telefone"} · {l.city}{l.address ? ` · ${l.address}` : ""}</div>
+    {l.maps_url && <a className="text-primary underline" href={l.maps_url} target="_blank" rel="noreferrer">Abrir no Google Maps</a>}
+  </div>)}</div>;
 }
