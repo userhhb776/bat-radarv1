@@ -42,7 +42,7 @@ export const saveAgentDetails = createServerFn({ method: "POST" })
     script_steps: z.array(step).max(10),
     miner: z.object({ niche: z.string().max(80).optional(), city: z.string().max(80).optional(), sem_site: z.boolean().optional(), nota_minima: z.number().min(0).max(5).optional(), daily: z.number().int().min(1).max(60).optional(), auto: z.boolean().optional(), auto_approach: z.boolean().optional(),
       min_reviews: z.number().int().min(0).max(500).optional(), min_photos: z.number().int().min(0).max(10).optional(), web_scan: z.boolean().optional(),
-      hora_inicio: z.number().int().min(0).max(23).optional(), hora_fim: z.number().int().min(1).max(24).optional(), limite_dia: z.number().int().min(1).max(200).optional(), states: z.array(z.string().length(2)).max(27).optional(), btx_opening: z.boolean().optional(), md_teste: z.boolean().optional(), niches: z.array(z.string().max(80)).max(10).optional(), dias: z.array(z.number().int().min(0).max(6)).max(7).optional(), gap_min: z.number().min(1).max(240).optional(), gap_max: z.number().min(1).max(480).optional() }),
+      hora_inicio: z.number().int().min(0).max(23).optional(), hora_fim: z.number().int().min(1).max(24).optional(), limite_dia: z.number().int().min(1).max(200).optional(), states: z.array(z.string().length(2)).max(27).optional(), btx_opening: z.boolean().optional(), md_teste: z.boolean().optional(), niches: z.array(z.string().max(80)).max(10).optional(), dias: z.array(z.number().int().min(0).max(6)).max(7).optional(), gap_min: z.number().min(1).max(240).optional(), gap_max: z.number().min(1).max(480).optional(), open_gap_min: z.number().min(1).max(300).optional(), open_gap_max: z.number().min(1).max(300).optional() }),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
@@ -236,8 +236,9 @@ export const startTestV2 = createServerFn({ method: "POST" })
     const phone = "5568992316302";
     await (context.supabase as any).from("agents").update({ active: true, training_mode: true, training_phone: phone, miner: { ...(a.miner ?? {}), md_teste: false } }).eq("id", a.id);
     const { evoSend } = await import("@/lib/evolution.server");
-    const text = fillTemplate(msg, { name: "Empresa Teste", city: "Rio Branco" } as any);
-    await evoSend(a.instance, phone, [text]);
-    await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: text });
+    const { splitBubbles, openGapMs } = await import("@/lib/agents.server");
+    const texts = splitBubbles(fillTemplate(msg, { name: "Empresa Teste", city: "Rio Branco" } as any));
+    await evoSend(a.instance, phone, texts, openGapMs(a));
+    for (const b of texts) await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: b });
     return { ok: true };
   });

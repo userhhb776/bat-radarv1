@@ -57,7 +57,13 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               const origin = new URL(request.url).origin;
               const phone = phones[0]!;
               const isOwner = (a: any) => a.training_phone && match(a.training_phone);
-              const trainer = agents.find((a) => a.training_mode && isOwner(a));
+              // vários agentes treinando no mesmo número: fica com o que falou por último com você
+              const trainers = agents.filter((a) => a.training_mode && isOwner(a));
+              let trainer = trainers[0];
+              if (trainers.length > 1) {
+                const { data: last } = await sb.from("agent_messages").select("agent_id").in("agent_id", trainers.map((x) => x.id)).like("phone", `%${phone.replace(/\D/g, "").slice(-8)}`).order("created_at", { ascending: false }).limit(1);
+                trainer = trainers.find((x) => x.id === (last as any)?.[0]?.agent_id) ?? trainer;
+              }
               const boss = /^\s*\/dono\s?12\b/i.test(text) ? (trainer ?? agents.find(isOwner)) : undefined;
               if (boss) {
                 const trainer = boss;
