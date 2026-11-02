@@ -206,8 +206,8 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
 
 const BTX_STOP = new Set(["quando","cliente","pergunta","perguntar","fala","disser","dizer","responde","responder","sobre","para","com","uma","um","que","qual","como","voce","voces","ele","ela","isso","esta","estou","estao","tem","ter","ser","sou","do","da","de","dos","das","no","na","nos","nas","e","ou"]);
 function btxTerms(value: string) {
-  return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase()
-    .replace(/[^a-z0-9\\s]/g, " ").split(/\\s+/)
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
     .filter((word) => word.length > 2 && !BTX_STOP.has(word));
 }
 const BTX_SYNONYMS = [
