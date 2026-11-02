@@ -208,7 +208,7 @@ const BTX_STOP = new Set(["quando","cliente","pergunta","perguntar","fala","diss
 function btxTerms(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
-    .filter((word) => word.length > 2 && !BTX_STOP.has(word));
+    .filter((word) => (word.length > 2 || word === "ia" || word === "ai") && !BTX_STOP.has(word));
 }
 const BTX_SYNONYMS = [
   ["preco","valor","custa","custaria","orcamento","pagamento"],
