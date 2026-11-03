@@ -432,7 +432,7 @@ export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
  * O runtime agrupa "Mensagem N" para a abertura e "Passo N" para sequências
  * de conversa; assim, mensagens consecutivas nunca aparecem como variações.
  */
-export function normalizeGeneratedBtxRules<T extends { when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>(rules: T[]): T[] {
+export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>): Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> {
   const normalized: T[] = [];
   for (const rule of rules) {
     const variants = (rule.variants ?? []).map((v) => v.trim()).filter(Boolean);
