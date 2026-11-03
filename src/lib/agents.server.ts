@@ -244,7 +244,8 @@ JEITO DE FALAR (obrigatório):
 ${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; aí responda com texto vazio ou bem curto):\n${audios.map((x) => `- id ${x.id}: "${x.title}" — enviar quando: ${x.trigger || x.title}`).join("\n")}` : ""}
 ${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
 ${btxText(a)}
-Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono (é silencioso: NUNCA diga ao cliente que vai encaminhar, passar pro Antonio ou chamar alguém).`;
+Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono (é silencioso: NUNCA diga ao cliente que vai encaminhar, passar pro Antonio ou chamar alguém).
+FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma situação B-T6X adequada e use responder_btx. Só se nenhuma situação cadastrada servir, use o contexto e os aprendizados do agente para responder. Não invente preços, prazos, condições, fatos ou promessas. Se não souber, faça uma pergunta curta ou sinalize ao dono. Nunca crie uma nova oferta nem contradiga o roteiro.`;
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
   let hot = false; let reason = ""; let audioId = ""; let fixed: string[] = [];
   const rules = a.btx?.rules ?? [];
@@ -266,8 +267,8 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   let matched: BtxRule | null = null;
   if (trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
-    if (trustedDecision.intent === "reject" && trustedDecision.stop) return { replies: [], hot: false, reason: "", audioId: "", stop: true };
-    if (!matched) return { replies: [], hot: trustedDecision.notify_owner, reason: trustedDecision.notify_owner ? trustedDecision.intent : "", audioId: "" };
+    if (!matched && trustedDecision.intent === "reject") return { replies: [], hot: false, reason: "", audioId: "", stop: true };
+    if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
   } else {
     matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
   }
@@ -277,8 +278,8 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId };
   }
-  // Com B-T6X ativo, não delega ao LLM a criação de mensagens fora do roteiro.
-  if (a.btx?.prompt?.trim() || rules.length) return { replies: [], hot: false, reason: "", audioId: "" };
+  // Última alternativa: nenhuma situação cadastrada serviu; só agora usa o agente treinado.
+  // O prompt acima mantém o B-T6X como prioridade e proíbe inventar preço/oferta/condições.
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
