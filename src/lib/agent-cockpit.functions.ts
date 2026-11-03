@@ -171,7 +171,7 @@ export const listMyBlocks = createServerFn({ method: "GET" })
   });
 
 // ---------- B-T6X: roteiro de abordagem com situações e variações ----------
-const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), audio_id: z.string().max(60).optional() });
+const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), mode: z.enum(["alternatives", "sequence"]).optional(), audio_id: z.string().max(60).optional() });
 const btxSchema = z.object({ prompt: z.string().max(8000), rules: z.array(btxRule).max(25) });
 
 export const saveBtx = createServerFn({ method: "POST" })
@@ -214,7 +214,7 @@ export const buildBtxPlan = createServerFn({ method: "POST" })
     const a = await loadAgent(sb, data.id);
     const { data: blocks } = await sb.from("scripts").select("title,body,message2,message3");
     const ref = (blocks ?? []).map((s: any) => `[${s.title}]\n${[s.body, s.message2, s.message3].filter(Boolean).join("\n---\n")}`).join("\n\n").slice(0, 5000);
-    const out = await ask(a, `Transforme as instruções do dono num funil de WhatsApp. Responda APENAS JSON: {"rules":[{"when":"situação curta","variants":["msg 1","msg 2"]}]}. Cada situação com 2 variações naturais (informais, curtas, sem cara de robô). Inclua "Abordagem inicial" primeiro se citada. Se ele citar um script/bloco pelo nome, use o texto dele.\n\nSCRIPTS SALVOS:\n${ref || "nenhum"}\n\nINSTRUÇÕES:\n${data.prompt}`);
+    const out = await ask(a, `Transforme as instruções do dono num funil de WhatsApp. Responda APENAS JSON: {"rules":[{"when":"situação curta","mode":"alternatives","variants":["mensagem alternativa 1","mensagem alternativa 2"]}]}. Use mode="alternatives" apenas quando forem versões equivalentes; use mode="sequence" e coloque em variants na ordem exata quando o dono definir Passo 1, Passo 2, Passo 3 ou mensagens que devem avançar uma por vez. Nunca transforme etapas sequenciais em variações. Inclua "Abordagem inicial" primeiro se citada. Se ele citar um script/bloco pelo nome, use o texto dele.\n\nSCRIPTS SALVOS:\n${ref || "nenhum"}\n\nINSTRUÇÕES:\n${data.prompt}`);
     const m = out.match(/\{[\s\S]*\}/);
     const parsed = btxSchema.shape.rules.safeParse(m ? JSON.parse(m[0]).rules : null);
     if (!parsed.success) throw new Error("A IA não devolveu um plano válido. Tente de novo.");
