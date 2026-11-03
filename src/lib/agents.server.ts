@@ -464,7 +464,9 @@ export function normalizeBtxRuleNumbering<T extends { when: string }>(rules: T[]
   });
   const result = rules.slice();
   for (const group of groups.values()) {
-    group.entries.sort((a, b) => a.order - b.order || a.index - b.index);
+    const orderCounts = new Set(group.entries.map((entry) => entry.order));
+    if (orderCounts.size === group.entries.length) group.entries.sort((a, b) => a.order - b.order || a.index - b.index);
+    else group.entries.sort((a, b) => a.index - b.index);
     group.entries.forEach((entry, index) => {
       result[entry.index] = { ...result[entry.index]!, when: `${group.label} — ${group.type === "mensagem" ? "Mensagem" : "Passo"} ${index + 1}` };
     });
