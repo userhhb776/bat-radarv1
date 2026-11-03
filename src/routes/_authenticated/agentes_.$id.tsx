@@ -395,7 +395,7 @@ function Talk({ id, name }: { id: string; name: string }) {
 function F({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1"><Label>{label}</Label>{children}</div>; }
 function Row({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) { return <div className="flex items-center justify-between gap-2"><Label>{label}</Label><Switch checked={v} onCheckedChange={on} /></div>; }
 
-type BRule = { when: string; variants: string[]; audio_id?: string | undefined };
+type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string | undefined };
 function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveBtx), vary = useServerFn(varyMessage), plan = useServerFn(buildBtxPlan);
@@ -407,7 +407,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const run = async (tag: string, fn: () => Promise<void>) => { setBusy(tag); try { await fn(); } catch (e) { toast.error(e instanceof Error ? e.message : "Falhou"); } finally { setBusy(""); } };
   return (
     <div className="space-y-3 rounded-lg border bg-card p-3">
-      <p className="text-sm text-muted-foreground">Escreva como o agente deve abordar e responder. Ele segue isso à risca e usa as respostas prontas abaixo, sorteando uma variação para não parecer robô.</p>
+      <p className="text-sm text-muted-foreground">Cadastre respostas prontas. Use Alternativas para mensagens equivalentes ou Sequência linear para Passo 1, 2, 3: o agente só avança um passo após uma resposta positiva.</p>
       <F label="Prompt de abordagem e conversa">
         <Textarea rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder='Ex: Ao iniciar use as mensagens do script "Barbearias". Se disser que não quer, fale: "tranquilo, obrigado!". Se a atendente disser que vai passar pro dono, fale: "show, fico no aguardo". Se perguntar como funciona, fale...' />
       </F>
@@ -418,14 +418,15 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
         <div key={i} className="space-y-2 rounded-md border p-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-muted-foreground">{i + 1}.</span>
-            <Input value={r.when} onChange={(e) => setRule(i, { when: e.target.value })} placeholder="Quando… (ex: cliente diz que não quer)" />
+            <Input value={r.when} onChange={(e) => setRule(i, { when: e.target.value })} placeholder="Quando… (ex: cliente aceita receber a apresentação)" />
             <Button size="icon" variant="ghost" onClick={() => setRules(rules.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
           </div>
+          <div className="flex flex-wrap items-center gap-2"><Label className="text-xs">Tipo de resposta</Label><select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.mode ?? "alternatives"} onChange={(e) => setRule(i, { mode: e.target.value as BRule["mode"] })}><option value="alternatives">Alternativas (sortear)</option><option value="sequence">Sequência linear (em ordem)</option></select></div>
           {r.variants.map((v, k) => (
             <div key={k} className="flex items-start gap-1">
-              <Textarea rows={2} value={v} onChange={(e) => setVar(i, k, e.target.value)} placeholder={`Variação ${k + 1}`} />
+              <Textarea rows={2} value={v} onChange={(e) => setVar(i, k, e.target.value)} placeholder={r.mode === "sequence" ? `Passo ${k + 1}` : `Variação ${k + 1}`} />
               <div className="flex flex-col">
-                <Button size="icon" variant="ghost" title="Gerar variação com IA" disabled={!!busy || !v.trim()} onClick={() => run(`v${i}-${k}`, async () => { const o = await vary({ data: { id, text: v } }); if (r.variants.length < 6) setRule(i, { variants: [...r.variants, o.text] }); else setVar(i, k, o.text); })}>
+                <Button size="icon" variant="ghost" title="Gerar variação com IA" disabled={r.mode === "sequence" || !!busy || !v.trim()} onClick={() => run(`v${i}-${k}`, async () => { const o = await vary({ data: { id, text: v } }); if (r.variants.length < 6) setRule(i, { variants: [...r.variants, o.text] }); else setVar(i, k, o.text); })}>
                   {busy === `v${i}-${k}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-primary" />}
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => setRule(i, { variants: r.variants.filter((_, j) => j !== k) })}><Trash2 className="h-3 w-3" /></Button>
@@ -433,7 +434,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
             </div>
           ))}
           <div className="flex flex-wrap items-center gap-2">
-            {r.variants.length < 6 && <Button size="sm" variant="outline" onClick={() => setRule(i, { variants: [...r.variants, ""] })}><Plus className="h-3 w-3" /> Variação</Button>}
+            {r.variants.length < 6 && <Button size="sm" variant="outline" onClick={() => setRule(i, { variants: [...r.variants, ""] })}><Plus className="h-3 w-3" /> {r.mode === "sequence" ? "Próximo passo" : "Variação"}</Button>}
             <Mic className="h-4 w-4 text-muted-foreground" />
             <select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.audio_id ?? ""} onChange={(e) => setRule(i, { audio_id: e.target.value || undefined })}>
               <option value="">Sem áudio</option>{audios.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
@@ -442,7 +443,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
         </div>
       ))}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" disabled={rules.length >= 25} onClick={() => setRules([...rules, { when: "", variants: [""] }])}><Plus className="h-4 w-4" /> Situação</Button>
+        <Button size="sm" variant="outline" disabled={rules.length >= 25} onClick={() => setRules([...rules, { when: "", variants: [""], mode: "alternatives" }])}><Plus className="h-4 w-4" /> Situação</Button>
         <Button size="sm" disabled={!!busy} onClick={() => run("save", async () => { await save({ data: { id, btx: { prompt, rules: rules.map((r) => ({ ...r, variants: r.variants.filter((v) => v.trim()) })).filter((r) => r.when.trim()) } } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); toast.success("B-T6X salvo"); })}>Salvar B-T6X</Button>
       </div>
       <p className="text-xs text-muted-foreground">Dica: use {"{nome}"} para o nome da empresa. Para responder com áudio, grave-o antes na aba Áudios.</p>
