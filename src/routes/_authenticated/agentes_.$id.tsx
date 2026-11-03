@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
+import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, saveLimp, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
 import { STATES } from "@/lib/mining-options";
 import { talkToAgent } from "@/lib/agents.functions";
 
@@ -52,6 +52,7 @@ function Cockpit() {
           <TabsList className="flex h-auto flex-wrap">
             <TabsTrigger value="vivo">Ao vivo</TabsTrigger>
             <TabsTrigger value="btx">B-T6X</TabsTrigger>
+            <TabsTrigger value="limp">LIMP</TabsTrigger>
             <TabsTrigger value="conversas">Conversas</TabsTrigger>
             <TabsTrigger value="minerador">Minerador</TabsTrigger>
             <TabsTrigger value="roteiro">Roteiro e jeito</TabsTrigger>
@@ -61,6 +62,7 @@ function Cockpit() {
             <TabsTrigger value="falar">Dar ordens</TabsTrigger>
           </TabsList>
           <TabsContent value="btx"><Btx id={id} a={a} audios={data.audios as any[]} /></TabsContent>
+          <TabsContent value="limp"><Limp id={id} a={a} /></TabsContent>
           <TabsContent value="vivo"><Live id={id} events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
           <TabsContent value="conversas"><Chats id={id} messages={data.messages as any[]} paused={data.paused as string[]} /></TabsContent>
           <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} events={data.events as any[]} /></TabsContent>
@@ -396,11 +398,53 @@ function F({ label, children }: { label: string; children: React.ReactNode }) { 
 function Row({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) { return <div className="flex items-center justify-between gap-2"><Label>{label}</Label><Switch checked={v} onCheckedChange={on} /></div>; }
 
 type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence" | undefined; audio_id?: string | undefined };
+function normalizeBtxLabels(rules: BRule[]) {
+  const groups = new Map<string, { label: string; type: "mensagem" | "passo"; rows: Array<{ index: number; order: number }> }>();
+  rules.forEach((rule, index) => {
+    const match = /^(.*?)(?:\\s*[-–—:]?\\s*)(mensagem|passo)\\s*(\\d+)\\s*$/i.exec(rule.when.trim());
+    if (!match) return;
+    const label = match[1]!.trim(), type = match[2]!.toLowerCase() as "mensagem" | "passo";
+    const key = `${label.toLowerCase().replace(/\\s+/g, " ")}|${type}`;
+    const group = groups.get(key) ?? { label, type, rows: [] };
+    group.rows.push({ index, order: Number(match[3]) }); groups.set(key, group);
+  });
+  const result = rules.slice();
+  for (const group of groups.values()) {
+    group.rows.sort((a, b) => a.order - b.order || a.index - b.index);
+    group.rows.forEach((row, index) => { result[row.index] = { ...result[row.index]!, when: `${group.label} — ${group.type === "mensagem" ? "Mensagem" : "Passo"} ${index + 1}` }; });
+  }
+  return result;
+}
+function Limp({ id, a }: { id: string; a: any }) {
+  const qc = useQueryClient();
+  const save = useServerFn(saveLimp);
+  const [enabled, setEnabled] = useState<boolean>(!!a.limp?.enabled);
+  const [entriesText, setEntriesText] = useState<string>((a.limp?.entries ?? []).join("\\n"));
+  const [busy, setBusy] = useState(false);
+  const entries = entriesText.split(/\\r?\\n/).map((x) => x.trim()).filter(Boolean);
+  return (
+    <div className="space-y-3 rounded-lg border bg-card p-3">
+      <div>
+        <h3 className="font-semibold">LIMP — Lista de Interrupção de Mensagens</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Cadastre palavras, assuntos ou frases que o agente não deve responder. O LIMP é consultado antes do B-T6X e da IA: se houver correspondência, a mensagem é ignorada e registrada no painel.</p>
+      </div>
+      <Row label="Ativar proteção LIMP" v={enabled} on={setEnabled} />
+      <F label="Uma regra por linha">
+        <Textarea rows={9} value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder={"finanças\nNão quero receber mensagens\nPare de entrar em contato\nRemova meu número\nassunto pessoal"} />
+      </F>
+      <p className="text-xs text-muted-foreground">A comparação ignora maiúsculas, acentos e pontuação. Ex.: a regra “finanças” também encontra “gostaria de falar sobre finanças”. Regras de descadastro como “pare de entrar em contato” também pausam permanentemente a automação para aquele contato.</p>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{entries.length} regra(s) cadastrada(s)</span>
+        <Button disabled={busy} onClick={async () => { setBusy(true); try { await save({ data: { id, limp: { enabled, entries } } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); toast.success("LIMP salvo"); } catch (e) { toast.error(e instanceof Error ? e.message : "Erro ao salvar"); } finally { setBusy(false); } }}>Salvar LIMP</Button>
+      </div>
+    </div>
+  );
+}
 function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveBtx), vary = useServerFn(varyMessage), plan = useServerFn(buildBtxPlan);
   const [prompt, setPrompt] = useState<string>(a.btx?.prompt ?? "");
-  const [rules, setRules] = useState<BRule[]>(a.btx?.rules ?? []);
+  const [rules, setRules] = useState<BRule[]>(() => normalizeBtxLabels(a.btx?.rules ?? []));
   const [busy, setBusy] = useState("");
   const setRule = (i: number, r: Partial<BRule>) => setRules(rules.map((x, j) => (j === i ? { ...x, ...r } : x)));
   const setVar = (i: number, k: number, v: string) => setRule(i, { variants: rules[i]!.variants.map((x, j) => (j === k ? v : x)) });
