@@ -242,3 +242,24 @@ export const startTestV2 = createServerFn({ method: "POST" })
     for (const b of texts) await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: b });
     return { ok: true };
   });
+
+/** Aprova o treino: desliga o md-teste e põe na fila real todas as empresas do teste (nenhuma se perde). */
+export const approveTest = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => idOnly.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const a = await loadAgent(sb, data.id);
+    const m = a.miner ?? {};
+    await sb.from("agents").update({ miner: { ...m, md_teste: false }, active: true }).eq("id", a.id);
+    const { data: rows } = await sb.from("agent_leads").select("id").eq("agent_id", a.id).eq("status", "teste").not("phone", "is", null);
+    const gMin = Number(m.gap_min ?? 6), gMax = Math.max(gMin, Number(m.gap_max ?? 15));
+    let t = Date.now() + 2 * 60000;
+    for (const r of (rows ?? []) as any[]) {
+      t += (gMin + Math.random() * (gMax - gMin)) * 60000;
+      await sb.from("agent_leads").update({ status: "fila", send_at: new Date(t).toISOString() }).eq("id", r.id);
+    }
+    const { logEvent } = await import("@/lib/agents.server");
+    await logEvent(sb, a, "aprovou", `Treino aprovado: ${rows?.length ?? 0} empresas foram para a fila real`);
+    return { aprovadas: rows?.length ?? 0 };
+  });
