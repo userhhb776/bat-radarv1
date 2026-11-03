@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -34,6 +34,17 @@ describe("prioridade do B-T6X", () => {
   });
   it("não escolhe resposta pronta sem correspondência", () => {
     expect(matchBtxRule("Vocês atendem aos sábados?", rules)).toBeNull();
+  });
+});
+
+describe("B-T6X explicit team objection", () => {
+  it("prioritizes the configured existing-team response for natural Portuguese wording", () => {
+    const teamRule = { when: "Já tem equipe / agência / profissional", variants: ["Tudo bem! Obrigado pelo retorno."] };
+    expect(matchExistingTeamRule("Nós já temos uma equipe que trabalha com isso. Muito obrigada!", [teamRule])).toBe(teamRule);
+  });
+  it("does not match unrelated messages", () => {
+    const teamRule = { when: "Já tem equipe / agência / profissional", variants: ["Resposta pronta"] };
+    expect(matchExistingTeamRule("Quanto custa o site?", [teamRule])).toBeNull();
   });
 });
 
