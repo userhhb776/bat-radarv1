@@ -604,14 +604,14 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   const { data: last } = await sb.from("agent_messages").select("id,direction,manual").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
   const r = await agentClientReply(sb, a, key, phone, name);
+  if (a.miner?.md_teste) {
+    await logEvent(sb, a, "teste", `[md-teste] ${(r as any).manualHandoff ? "transferiria para controle manual" : `responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`}`);
+    return { ...r, skipped: "md-teste" };
+  }
   if ((r as any).manualHandoff) {
     await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
     await logEvent(sb, a, "transferencia_manual", `Nenhuma resposta B-T6X cadastrada para ${name || phone}; IA bloqueada e conversa transferida para controle manual.`);
     return { ...r, skipped: "sem_resposta_btx_configurada", manual: true };
-  }
-  if (a.miner?.md_teste) {
-    await logEvent(sb, a, "teste", `[md-teste] responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`);
-    return { ...r, skipped: "md-teste" };
   }
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
   let configuredResponseSent = false;
