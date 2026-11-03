@@ -407,7 +407,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const run = async (tag: string, fn: () => Promise<void>) => { setBusy(tag); try { await fn(); } catch (e) { toast.error(e instanceof Error ? e.message : "Falhou"); } finally { setBusy(""); } };
   return (
     <div className="space-y-3 rounded-lg border bg-card p-3">
-      <p className="text-sm text-muted-foreground">Cadastre respostas prontas. Use Alternativas para mensagens equivalentes ou Sequência linear para Passo 1, 2, 3: o agente só avança um passo após uma resposta positiva.</p>
+      <p className="text-sm text-muted-foreground">Cada cartão representa uma situação ou mensagem numerada. Use Alternativas somente para textos equivalentes que podem ser sorteados no mesmo momento. Mensagens enviadas em sequência devem ficar em cartões separados ("Mensagem 1", "Mensagem 2"); quando o cliente precisa responder para avançar, use Passos numerados. O agente respeita a ordem.</p>
       <F label="Prompt de abordagem e conversa">
         <Textarea rows={6} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder='Ex: Ao iniciar use as mensagens do script "Barbearias". Se disser que não quer, fale: "tranquilo, obrigado!". Se a atendente disser que vai passar pro dono, fale: "show, fico no aguardo". Se perguntar como funciona, fale...' />
       </F>
@@ -418,7 +418,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
         <div key={i} className="space-y-2 rounded-md border p-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-muted-foreground">{i + 1}.</span>
-            <Input value={r.when} onChange={(e) => setRule(i, { when: e.target.value })} placeholder="Quando… (ex: cliente aceita receber a apresentação)" />
+            <Input value={r.when} onChange={(e) => setRule(i, { when: e.target.value })} placeholder="Situação específica (ex: cliente informa que já possui equipe de marketing)" />
             <Button size="icon" variant="ghost" onClick={() => setRules(rules.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
           </div>
           <div className="flex flex-wrap items-center gap-2"><Label className="text-xs">Tipo de resposta</Label><select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.mode ?? "alternatives"} onChange={(e) => setRule(i, { mode: (e.target.value as "alternatives" | "sequence") || undefined })}><option value="alternatives">Alternativas (sortear)</option><option value="sequence">Sequência linear (em ordem)</option></select></div>
