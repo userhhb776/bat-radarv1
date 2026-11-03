@@ -262,18 +262,18 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   // Em caso de falha/baixa confiança, o mecanismo local permanece como fallback.
   // Situações explícitas e inequívocas no texto do cliente têm prioridade sobre a classificação da IA.
   // Isso evita que "já temos uma equipe" seja confundido com outra objeção ou etapa do funil.
-  const explicitMatch = matchExistingTeamRule(latestInbound, rules) ?? matchBtxRule(latestInbound, rules);
+  const explicitTeamMatch = matchExistingTeamRule(latestInbound, rules);
   const decision = await interpretBtxIntent(a, fallbackKey, hist, rules);
   const trustedDecision = decision && decision.confidence >= 0.62 ? decision : null;
   const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept");
   if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: "" };
-  let matched: BtxRule | null = explicitMatch;
+  let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
     if (!matched && trustedDecision.intent === "reject") return { replies: [], hot: false, reason: "", audioId: "", stop: true };
     if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
   } else if (!matched) {
-    matched = isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null;
+    matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
   }
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
