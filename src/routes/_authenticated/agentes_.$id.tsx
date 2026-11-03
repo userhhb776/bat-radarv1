@@ -61,7 +61,7 @@ function Cockpit() {
             <TabsTrigger value="falar">Dar ordens</TabsTrigger>
           </TabsList>
           <TabsContent value="btx"><Btx id={id} a={a} audios={data.audios as any[]} /></TabsContent>
-          <TabsContent value="vivo"><Live id={(data as any).agent?.id ?? Route.useParams().id} events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
+          <TabsContent value="vivo"><Live id={id} events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
           <TabsContent value="conversas"><Chats id={id} messages={data.messages as any[]} paused={data.paused as string[]} /></TabsContent>
           <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} events={data.events as any[]} /></TabsContent>
           <TabsContent value="roteiro"><Script id={id} a={a} /></TabsContent>
