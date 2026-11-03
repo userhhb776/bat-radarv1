@@ -385,7 +385,7 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
     }
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index >= 0) {
-      if (!accepted) return { replies: [] as string[], stop: false };
+      if (!accepted) return null;
       const next = rendered[index + 1];
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
     }
@@ -399,7 +399,7 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
     const rendered = rule.variants.map((v) => fillTemplate(v, { ...lead, name: lead.name || contactName }));
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index >= 0) {
-      if (!accepted) return { replies: [] as string[], stop: false };
+      if (!accepted) return null;
       const next = rendered[index + 1];
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
     }
