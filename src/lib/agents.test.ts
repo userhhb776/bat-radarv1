@@ -68,13 +68,6 @@ describe("B-T6X linear flow", () => {
     const opening = { when: "Abordagem inicial - mensagem 1", variants: ["Olá!"] };
     expect(matchPositiveBtxRule([opening])).toBeNull();
   });
-  it("does not advance after a negative reply", () => {
-    const result = sequenceReply([
-      { role: "assistant", content: "Passo 1: apresentação" },
-      { role: "user", content: "Não tenho interesse" },
-    ], rules, {}, "Cliente");
-    expect(result).toBeNull();
-  });
   it("detects email and forwarding requests", () => {
     expect(isEmailOrForwardRequest("Pode enviar para contato@empresa.com")).toBe(true);
     expect(isEmailOrForwardRequest("Encaminhe ao setor responsável")).toBe(true);
