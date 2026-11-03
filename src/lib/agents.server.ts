@@ -276,7 +276,7 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
     if (pick) fixed = [fillTemplate(pick, leadContext)];
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
-    if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId };
+    if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false };
   }
   // Última alternativa: nenhuma situação cadastrada serviu; só agora usa o agente treinado.
   // O prompt acima mantém o B-T6X como prioridade e proíbe inventar preço/oferta/condições.
