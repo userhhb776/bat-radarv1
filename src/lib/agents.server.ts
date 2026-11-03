@@ -427,6 +427,34 @@ export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
   }) ?? null;
 }
 
+/**
+ * Converte sequências geradas em cartões numerados independentes.
+ * O runtime agrupa "Mensagem N" para a abertura e "Passo N" para sequências
+ * de conversa; assim, mensagens consecutivas nunca aparecem como variações.
+ */
+export function normalizeGeneratedBtxRules<T extends { when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>(rules: T[]): T[] {
+  const normalized: T[] = [];
+  for (const rule of rules) {
+    const variants = (rule.variants ?? []).map((v) => v.trim()).filter(Boolean);
+    if (!variants.length) continue;
+    if (rule.mode !== "sequence") {
+      normalized.push({ ...rule, variants, mode: "alternatives" });
+      continue;
+    }
+    const opening = /abord|inic|primeir|abertura/i.test(rule.when);
+    const base = rule.when.replace(/\\s*[-–—:]?\\s*(mensagem|passo)\\s*\\d+\\s*$/i, "").trim();
+    variants.forEach((message, index) => {
+      normalized.push({
+        ...rule,
+        when: `${base} — ${opening ? "Mensagem" : "Passo"} ${index + 1}`,
+        mode: "alternatives",
+        variants: [message],
+      });
+    });
+  }
+  return normalized.slice(0, 25);
+}
+
 export function matchBtxRule(message: string, rules: BtxRule[]) {
   const incoming = new Set(btxTerms(message));
   if (!incoming.size) return null;
