@@ -299,42 +299,79 @@ function Audios({ id, audios }: { id: string; audios: any[] }) {
   const [trigger, setTrigger] = useState("");
   const [busy, setBusy] = useState(false);
   const [rec, setRec] = useState<MediaRecorder | null>(null);
-  async function upload(blob: Blob): Promise<void> {
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [pendingMime, setPendingMime] = useState("");
+
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+
+  function prepare(blob: Blob) {
+    if (!blob.size) { toast.error("A gravação ficou vazia. Tente novamente."); return; }
+    if (blob.size > 1_400_000) { toast.error("Áudio muito grande (máx. ~1 minuto)."); return; }
+    setPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(blob); });
+    setPendingBlob(blob);
+    setPendingMime(blob.type || "audio/ogg");
+    toast.success("Áudio pronto para prévia. Ouça antes de salvar.");
+  }
+
+  async function savePending() {
     if (!title.trim()) { toast.error("Dê um nome ao áudio."); return; }
-    if (blob.size > 1_400_000) { toast.error("Áudio muito grande (máx ~1 minuto)."); return; }
+    if (!pendingBlob) return;
     setBusy(true);
     try {
-      const b64 = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] ?? ""); r.readAsDataURL(blob); });
-      await add({ data: { id, title, trigger, mime: blob.type || "audio/ogg", data: b64 } });
-      setTitle(""); setTrigger(""); toast.success("Áudio salvo"); qc.invalidateQueries({ queryKey: ["cockpit", id] });
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
+      const b64 = await new Promise<string>((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(String(reader.result).split(",")[1] ?? "");
+        reader.onerror = () => rej(new Error("Não consegui ler o arquivo de áudio."));
+        reader.readAsDataURL(pendingBlob);
+      });
+      await add({ data: { id, title, trigger, mime: pendingMime, data: b64 } });
+      setTitle(""); setTrigger(""); setPendingBlob(null); setPreviewUrl(""); setPendingMime("");
+      toast.success("Áudio salvo"); qc.invalidateQueries({ queryKey: ["cockpit", id] });
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Erro ao salvar áudio"); }
+    finally { setBusy(false); }
   }
+
   async function toggleRec() {
     if (rec) { rec.stop(); setRec(null); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const r = new MediaRecorder(stream); const parts: Blob[] = [];
-      r.ondataavailable = (e) => parts.push(e.data);
-      r.onstop = () => { stream.getTracks().forEach((t) => t.stop()); upload(new Blob(parts, { type: r.mimeType })); };
-      r.start(); setRec(r);
+      const preferred = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus"].find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
+      const parts: Blob[] = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) parts.push(event.data); };
+      recorder.onstop = () => { stream.getTracks().forEach((track) => track.stop()); prepare(new Blob(parts, { type: recorder.mimeType || parts[0]?.type || "audio/webm" })); };
+      recorder.start(); setRec(recorder);
     } catch { toast.error("Não consegui acessar o microfone."); }
   }
+
   return (
     <div className="space-y-3">
       <div className="space-y-2 rounded-lg border bg-card p-3">
-        <p className="text-xs text-muted-foreground">O cliente recebe como áudio gravado na hora (microfone verde). O agente escolhe o áudio quando o momento bate com o gatilho.</p>
-        <Input placeholder="Nome (ex: Como funciona)" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Input placeholder="Quando enviar (ex: cliente pergunta como funciona ou pede detalhes)" value={trigger} onChange={(e) => setTrigger(e.target.value)} />
+        <p className="text-xs text-muted-foreground">Grave ou envie um arquivo e ouça a prévia antes de salvar. O agente poderá usar o áudio quando o gatilho configurado combinar com a conversa.</p>
+        <Input placeholder="Nome (ex: Como funciona)" value={title} onChange={(event) => setTitle(event.target.value)} />
+        <Input placeholder="Quando enviar (ex: cliente pergunta como funciona ou pede detalhes)" value={trigger} onChange={(event) => setTrigger(event.target.value)} />
         <div className="flex flex-wrap gap-2">
-          <Button variant={rec ? "destructive" : "default"} disabled={busy} onClick={toggleRec}><Mic className="mr-1 h-4 w-4" />{rec ? "Parar e salvar" : "Gravar"}</Button>
-          <label className="inline-flex cursor-pointer items-center rounded-md border px-3 text-sm">Enviar arquivo<input type="file" accept="audio/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} /></label>
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Button variant={rec ? "destructive" : "default"} disabled={busy || !!pendingBlob} onClick={toggleRec}><Mic className="mr-1 h-4 w-4" />{rec ? "Parar gravação" : "Gravar áudio"}</Button>
+          <label className={`inline-flex cursor-pointer items-center rounded-md border px-3 text-sm ${busy || !!pendingBlob || !!rec ? "pointer-events-none opacity-50" : ""}`}>Enviar arquivo<input type="file" accept="audio/*" className="hidden" disabled={busy || !!pendingBlob || !!rec} onChange={(event) => { const file = event.target.files?.[0]; if (file) prepare(file); event.currentTarget.value = ""; }} /></label>
         </div>
+        {rec && <p className="text-xs text-muted-foreground">Gravando… pressione “Parar gravação” para ouvir e salvar.</p>}
+        {previewUrl && (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-sm font-medium">Prévia do áudio</p>
+            <audio controls preload="metadata" src={previewUrl} className="w-full" />
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={busy || !title.trim()} onClick={savePending}>{busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}Salvar áudio</Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => { setPendingBlob(null); setPreviewUrl(""); setPendingMime(""); }}>Descartar</Button>
+            </div>
+          </div>
+        )}
+        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
       </div>
-      {audios.map((x) => (
-        <div key={x.id} className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2 text-sm">
-          <div><div className="font-medium">🎤 {x.title}</div><div className="text-xs text-muted-foreground">{x.trigger || "sem gatilho"}</div></div>
-          <Button size="icon" variant="ghost" onClick={async () => { await del({ data: { id: x.id } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); }}><Trash2 className="h-4 w-4" /></Button>
+      {audios.map((audio) => (
+        <div key={audio.id} className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2 text-sm">
+          <div><div className="font-medium">🎤 {audio.title}</div><div className="text-xs text-muted-foreground">{audio.trigger || "sem gatilho"}</div></div>
+          <Button size="icon" variant="ghost" onClick={async () => { await del({ data: { id: audio.id } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); }}><Trash2 className="h-4 w-4" /></Button>
         </div>
       ))}
     </div>

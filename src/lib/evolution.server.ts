@@ -17,7 +17,11 @@ export async function evoSend(instance: string, phone: string, texts: string[], 
       body: JSON.stringify({ number, text, delay }),
       signal: AbortSignal.timeout(45000),
     });
-    if (!res.ok) throw new Error(`Servidor do WhatsApp respondeu ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const responseText = await res.text();
+  if (!res.ok) throw new Error(`Servidor do WhatsApp respondeu ${res.status}: ${responseText.slice(0, 300)}`);
+  let response: any = null;
+  try { response = responseText ? JSON.parse(responseText) : null; } catch { /* Algumas versões retornam corpo vazio. */ }
+  if (response?.status === "ERROR" || response?.error) throw new Error(String(response?.message ?? response?.error ?? "A Evolution não confirmou o envio do áudio."));
   }
 }
 
@@ -65,7 +69,7 @@ export async function evoSendAudio(instance: string, phone: string, base64: stri
   const res = await fetch(`${base}/message/sendWhatsAppAudio/${encodeURIComponent(instance)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: key },
-    body: JSON.stringify({ number, audio: base64, encoding: true, delay: Math.min(15000, recordMs) }),
+    body: JSON.stringify({ number, audio: base64, delay: Math.min(15000, recordMs) }),
     signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) throw new Error(`Servidor do WhatsApp respondeu ${res.status}: ${(await res.text()).slice(0, 200)}`);

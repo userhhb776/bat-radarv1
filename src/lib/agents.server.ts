@@ -246,7 +246,7 @@ ${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; 
 ${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
 ${btxText(a)}
 Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir humano, chame avisar_dono (é silencioso: NUNCA diga ao cliente que vai encaminhar, passar pro Antonio ou chamar alguém).
-FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma situação B-T6X adequada e use responder_btx. Só se nenhuma situação cadastrada servir, use o contexto e os aprendizados do agente para responder. Não invente preços, prazos, condições, fatos ou promessas. Se não souber, faça uma pergunta curta ou sinalize ao dono. Nunca crie uma nova oferta nem contradiga o roteiro.`;
+REGRA DE SEGURANÇA DO B-T6X: quando existir ao menos uma situação cadastrada, você NÃO PODE redigir respostas livres para o cliente. Só pode enviar uma variante existente por meio de responder_btx. Se nenhuma situação cadastrada corresponder, não responda; a conversa será transferida para controle manual. É proibido substituir uma mensagem bloqueada, ausente ou sem correspondência por texto inventado.`;
   const convo: any[] = [{ role: "system", content: sys }, ...hist];
   let hot = false; let reason = ""; let audioId = ""; let fixed: string[] = [];
   const rules = a.btx?.rules ?? [];
@@ -267,7 +267,12 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   const decision = await interpretBtxIntent(a, fallbackKey, hist, rules);
   const trustedDecision = decision && decision.confidence >= 0.62 ? decision : null;
   const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept");
-  if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: "" };
+  if (sequence) {
+    const sentTexts = sequence.replies.map(canonicalScriptText);
+    const pauseAfterSend = rules.some((rule) => rule.stop_after_send && rule.variants.some((variant) =>
+      sentTexts.includes(canonicalScriptText(fillTemplate(variant, leadContext)))));
+    return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: "", pauseAfterSend };
+  }
   let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
@@ -282,8 +287,11 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false, pauseAfterSend: !!matched.stop_after_send };
   }
-  // Última alternativa: nenhuma situação cadastrada serviu; só agora usa o agente treinado.
-  // O prompt acima mantém o B-T6X como prioridade e proíbe inventar preço/oferta/condições.
+  // Com B-T6X configurado, falha fechada: nunca deixa a IA criar uma resposta
+  // substituta para uma situação ausente/bloqueada/não cadastrada.
+  if (rules.length) return { replies: [] as string[], hot: hot || !!trustedDecision?.notify_owner, reason: reason || (trustedDecision?.notify_owner ? trustedDecision.intent : ""), audioId: "", manualHandoff: true };
+
+  // Sem B-T6X configurado, preserva o comportamento legado do agente treinado.
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
@@ -597,8 +605,13 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
   const r = await agentClientReply(sb, a, key, phone, name);
   if (a.miner?.md_teste) {
-    await logEvent(sb, a, "teste", `[md-teste] responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`);
+    await logEvent(sb, a, "teste", `[md-teste] ${(r as any).manualHandoff ? "transferiria para controle manual" : `responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`}`);
     return { ...r, skipped: "md-teste" };
+  }
+  if ((r as any).manualHandoff) {
+    await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
+    await logEvent(sb, a, "transferencia_manual", `Nenhuma resposta B-T6X cadastrada para ${name || phone}; IA bloqueada e conversa transferida para controle manual.`);
+    return { ...r, skipped: "sem_resposta_btx_configurada", manual: true };
   }
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
   let configuredResponseSent = false;
