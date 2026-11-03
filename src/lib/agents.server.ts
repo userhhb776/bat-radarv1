@@ -232,7 +232,7 @@ function isPositiveReply(message: string) {
   const normalized = message.trim().toLowerCase();
   return POSITIVE_REPLY.test(normalized) && !/\b(n[aã]o|nao quero|sem interesse|deixa|pare|cancele)\b/i.test(normalized);
 }
-function isEmailOrForwardRequest(message: string) {
+export function isEmailOrForwardRequest(message: string) {
   return /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
     || /encaminh(ar|a|e|amento)|pass(ar|a|e) (?:para|pro|pra) (?:o )?(?:setor|departamento|respons[aá]vel)|setor respons[aá]vel|departamento respons[aá]vel/i.test(message);
 }
@@ -248,12 +248,12 @@ export function adaptGreeting(text: string, now = new Date()) {
 function canonicalScriptText(value: string) {
   return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
 }
-function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
+export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
   const sequences = rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()));
   if (!sequences.length) return null;
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   for (const rule of sequences) {
-    const rendered = rule.variants.map((v) => splitBubbles(fillTemplate(v, lead)).at(-1) ?? "");
+    const rendered = rule.variants.map((v) => { const bubbles = splitBubbles(fillTemplate(v, lead)); return bubbles[bubbles.length - 1] ?? ""; });
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index < 0) continue;
     if (!isPositiveReply([...hist].reverse().find((h) => h.role === "user")?.content ?? "")) return { replies: [] as string[], stop: false };
