@@ -370,7 +370,7 @@ export function openingMessagesFor(a: Agent) {
 export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string, forceAdvance = false) {
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   const inbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
-  const accepted = forceAdvance || accepted;
+  const accepted = forceAdvance || isPositiveReply(inbound);
   const numbered = numberedRuleGroups(rules).filter((g) => /aceit|interess|proposta|continua|avanc|pode enviar|quer receber/.test(g.key));
   for (const group of numbered) {
     const rendered = group.items.map(({ rule }) => fillTemplate(rule.variants.find((v) => v.trim()) ?? "", { ...lead, name: lead.name || contactName }));
