@@ -214,11 +214,30 @@ export const buildBtxPlan = createServerFn({ method: "POST" })
     const a = await loadAgent(sb, data.id);
     const { data: blocks } = await sb.from("scripts").select("title,body,message2,message3");
     const ref = (blocks ?? []).map((s: any) => `[${s.title}]\n${[s.body, s.message2, s.message3].filter(Boolean).join("\n---\n")}`).join("\n\n").slice(0, 5000);
-    const out = await ask(a, `Transforme as instruções do dono num funil de WhatsApp. Responda APENAS JSON: {"rules":[{"when":"situação curta","mode":"alternatives","variants":["mensagem alternativa 1","mensagem alternativa 2"]}]}. Use mode="alternatives" apenas quando forem versões equivalentes; use mode="sequence" e coloque em variants na ordem exata quando o dono definir Passo 1, Passo 2, Passo 3 ou mensagens que devem avançar uma por vez. Nunca transforme etapas sequenciais em variações. Inclua "Abordagem inicial" primeiro se citada. Se ele citar um script/bloco pelo nome, use o texto dele.\n\nSCRIPTS SALVOS:\n${ref || "nenhum"}\n\nINSTRUÇÕES:\n${data.prompt}`);
-    const m = out.match(/\{[\s\S]*\}/);
+    const out = await ask(a, `Você é um arquiteto de fluxos de WhatsApp. Converta as instruções do dono em um funil operacional, fiel ao conteúdo original. Responda APENAS JSON válido neste formato: {"rules":[{"when":"título claro e específico","mode":"alternatives","variants":["texto"]}]}.
+
+REGRAS OBRIGATÓRIAS DE ESTRUTURA:
+1. Cada cartão ("when") representa uma situação ou uma mensagem numerada, com título descritivo. Nunca use títulos vagos como "abordagem inicial", "cliente recusou", "cliente aceitou" ou "resposta".
+2. Para a abertura, nomeie cada balão enviado em sequência como cartões separados: "Abordagem inicial — Mensagem 1", "Abordagem inicial — Mensagem 2", "Abordagem inicial — Mensagem 3". Cada cartão contém SOMENTE o texto daquele balão. Não coloque a Mensagem 2 como variação da Mensagem 1.
+3. Use mode="alternatives" SOMENTE para textos diferentes que comunicam a MESMA mensagem, para a MESMA situação e no MESMO momento. As variações devem ser intercambiáveis sem mudar a etapa do funil.
+4. Quando o cliente precisa responder antes de a próxima mensagem ser enviada, isso é uma etapa posterior, nunca uma variação. Represente como cartões numerados de uma sequência, por exemplo "Cliente aceita receber a apresentação — Passo 1", "Cliente aceita receber a apresentação — Passo 2". Cada cartão contém somente uma mensagem daquele passo.
+5. Se o dono descreveu mensagens que devem ser enviadas uma após outra sem aguardar resposta, use "Mensagem 1", "Mensagem 2" etc. Se descreveu avanço após resposta do cliente, use "Passo 1", "Passo 2" etc.
+6. Separe claramente situações diferentes: cliente pergunta preço; cliente diz que já possui equipe/agência; cliente pede para falar por e-mail; cliente recusa/não tem interesse; cliente demonstra interesse/aceita; cliente pede mais informações. Não misture suas respostas.
+7. Os títulos devem explicar o gatilho com contexto suficiente para o agente identificar a situação. Preserve a ordem do funil e não invente mensagens ou etapas que o dono não forneceu.
+8. Se houver um script salvo pelo nome, use o conteúdo literal dele. Se houver dúvida, prefira manter a mensagem original e sinalizar a situação de forma específica, sem inventar.
+
+SCRIPTS SALVOS:
+${ref || "nenhum"}
+
+INSTRUÇÕES DO DONO:
+${data.prompt}`);
+    const m = out.match(/\\{[\\s\\S]*\\}/);
     const parsed = btxSchema.shape.rules.safeParse(m ? JSON.parse(m[0]).rules : null);
     if (!parsed.success) throw new Error("A IA não devolveu um plano válido. Tente de novo.");
-    return { rules: parsed.data };
+    const { normalizeGeneratedBtxRules } = await import("@/lib/agents.server");
+    const normalized = normalizeGeneratedBtxRules(parsed.data);
+    if (!normalized.length) throw new Error("O funil veio sem mensagens válidas. Revise as instruções e tente novamente.");
+    return { rules: normalized };
   });
 
 /** TESTE V2: liga o treino e manda a abordagem real para o número do dono, que finge ser cliente. */
