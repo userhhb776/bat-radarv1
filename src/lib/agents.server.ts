@@ -227,7 +227,7 @@ const BTX_SYNONYMS = [
   ["horario","abre","aberto","funciona","fecha"],
   ["humano","pessoa","atendente","dono","responsavel"],
 ];
-const POSITIVE_REPLY = /\b(sim|simmm|isso|isso mesmo|pode|pode ser|vamos|bora|claro|ok|okay|certo|perfeito|show|legal|gostei|tenho interesse|quero|manda|envia|pode mandar|pode enviar|me envia|me mande|segue|est[aá] bem|combinado|fechado)\b/i;
+const POSITIVE_REPLY = /\b(sim+|isso|isso mesmo|pode|pode ser|vamos|bora|claro|ok|okay|certo|perfeito|show|legal|gostei|tenho interesse|quero|manda|envia|pode mandar|pode enviar|me envia|me mande|segue|est[aá] bem|combinado|fechado)\b/i;
 function isPositiveReply(message: string) {
   const normalized = message.trim().toLowerCase();
   return POSITIVE_REPLY.test(normalized) && !/\b(n[aã]o|nao quero|sem interesse|deixa|pare|cancele)\b/i.test(normalized);
