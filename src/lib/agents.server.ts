@@ -189,7 +189,7 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   const matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? rules.find((r) => r.mode === "sequence") ?? null : null);
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
-    if (pick) fixed = splitBubbles(fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche }));
+    if (pick) fixed = [fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche })];
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: false, reason: "", audioId };
   }
@@ -506,12 +506,12 @@ export async function processAgentQueue(sb: SupabaseClient) {
     if (!got?.length) continue;
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
     const ag = a as any as Agent | null;
-    const step = ag ? openingFor(ag) : "";
-    if (!ag || !ag.instance || !step) { await sb.from("agent_leads").update({ status: "fila" }).eq("id", l.id); continue; }
+    const openingBlocks = ag ? openingMessagesFor(ag) : [];
+    if (!ag || !ag.instance || !openingBlocks.length) { await sb.from("agent_leads").update({ status: "fila" }).eq("id", l.id); continue; }
     sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     try {
       const { evoSend } = await import("@/lib/evolution.server");
-      const texts = splitBubbles(fillTemplate(step, l)).map((x) => adaptGreeting(x));
+      const texts = openingBlocks.map((block) => adaptGreeting(fillTemplate(block, l)));
       await evoSend(ag.instance, l.phone, texts, openGapMs(ag));
       const phone = digits(l.phone);
       for (const b of texts) await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: b });
