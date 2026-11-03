@@ -186,7 +186,7 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   }
   const sequence = sequenceReply(hist, rules, { name: companyName || contactName, city: companyCity, niche: companyNiche }, contactName);
   if (sequence) return { ...sequence, hot: false, reason: "", audioId: "" };
-  const matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? rules.find((r) => r.mode === "sequence") ?? null : null);
+  const matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
     if (pick) fixed = [fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche })];
@@ -231,6 +231,16 @@ const POSITIVE_REPLY = /\b(sim+|isso|isso mesmo|pode|pode ser|vamos|bora|claro|o
 function isPositiveReply(message: string) {
   const normalized = message.trim().toLowerCase();
   return POSITIVE_REPLY.test(normalized) && !/\b(n[aã]o|nao quero|sem interesse|deixa|pare|cancele)\b/i.test(normalized);
+}
+
+/** Seleciona regras explícitas de aceite mesmo quando configuradas como alternativas. */
+export function matchPositiveBtxRule(rules: BtxRule[]) {
+  return rules.find((rule) => {
+    if (!rule.variants?.some((variant) => variant.trim())) return false;
+    const label = String(rule.when ?? "").toLowerCase();
+    if (/abord|inic|primeir|abertura/.test(label)) return false;
+    return /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode (?:mandar|enviar)|responde.*sim|resposta.*sim|cliente.*\\bsim\\b/i.test(label);
+  }) ?? null;
 }
 export function isEmailOrForwardRequest(message: string) {
   return /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
