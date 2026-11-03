@@ -177,7 +177,7 @@ export const saveLimp = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), limp: limpSchema }).parse(d))
   .handler(async ({ data, context }) => {
-    const entries = [...new Set(data.limp.entries.map((entry) => entry.replace(/\\s+/g, " ").trim()).filter(Boolean))];
+    const entries = [...new Set(data.limp.entries.map((entry) => entry.replace(/\s+/g, " ").trim()).filter(Boolean))];
     const { error } = await (context.supabase as any).from("agents").update({ limp: { enabled: data.limp.enabled, entries } }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
