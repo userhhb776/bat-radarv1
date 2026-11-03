@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -34,5 +34,31 @@ describe("prioridade do B-T6X", () => {
   });
   it("não escolhe resposta pronta sem correspondência", () => {
     expect(matchBtxRule("Vocês atendem aos sábados?", rules)).toBeNull();
+  });
+});
+
+describe("B-T6X linear flow", () => {
+  const rules = [{ when: "cliente aceita continuar", mode: "sequence" as const, variants: ["Passo 1: apresentação", "Passo 2: envio do catálogo", "Passo 3: encerramento"] }];
+  it("advances exactly one step after a positive reply", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Passo 1: apresentação" },
+      { role: "user", content: "Sim, pode mandar" },
+    ], rules, {}, "Cliente");
+    expect(result?.replies).toEqual(["Passo 2: envio do catálogo"]);
+  });
+  it("does not advance after a negative reply", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Passo 1: apresentação" },
+      { role: "user", content: "Não tenho interesse" },
+    ], rules, {}, "Cliente");
+    expect(result?.replies).toEqual([]);
+  });
+  it("detects email and forwarding requests", () => {
+    expect(isEmailOrForwardRequest("Pode enviar para contato@empresa.com")).toBe(true);
+    expect(isEmailOrForwardRequest("Encaminhe ao setor responsável")).toBe(true);
+  });
+  it("adapts greetings to Rio Branco send time", () => {
+    expect(adaptGreeting("Bom dia, tudo bem?", new Date("2026-11-02T18:00:00Z"))).toBe("Boa tarde, tudo bem?");
+    expect(adaptGreeting("Boa noite!", new Date("2026-11-02T15:00:00Z"))).toBe("Bom dia!");
   });
 });
