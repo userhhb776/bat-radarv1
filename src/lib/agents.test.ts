@@ -75,12 +75,8 @@ describe("B-T6X numbered message blocks", () => {
     const blocks = openingMessagesFor({ miner: { btx_opening: true }, btx: { rules: numbered } } as any);
     expect(blocks).toEqual(["Primeiro bloco\n\ncom outro parágrafo", "Segundo bloco\n\ncom parágrafo preservado"]);
   });
-  it("starts the acceptance sequence on an affirmative and advances one numbered rule", () => {
+  it("sends all numbered messages in sequence when client accepts", () => {
     const first = sequenceReply([{ role: "assistant", content: "Abordagem inicial" }, { role: "user", content: "simm, claro!" }], numbered, {}, "Cliente");
-    expect(first?.replies).toEqual(["Etapa de aceite 1"]);
-    const second = sequenceReply([{ role: "assistant", content: "Etapa de aceite 1" }, { role: "user", content: "pode ser" }], numbered, {}, "Cliente");
-    expect(second?.replies).toEqual(["Etapa de aceite 2\n\nparágrafo interno"]);
-    const third = sequenceReply([{ role: "assistant", content: "Etapa de aceite 2\n\nparágrafo interno" }, { role: "user", content: "bora" }], numbered, {}, "Cliente");
-    expect(third?.replies).toEqual(["Etapa de aceite 3"]);
+    expect(first?.replies).toEqual(["Etapa de aceite 1", "Etapa de aceite 2\n\nparágrafo interno", "Etapa de aceite 3"]);
   });
 });
