@@ -171,6 +171,18 @@ export const listMyBlocks = createServerFn({ method: "GET" })
   });
 
 // ---------- B-T6X: roteiro de abordagem com situações e variações ----------
+const limpSchema = z.object({ enabled: z.boolean(), entries: z.array(z.string().trim().min(3).max(160)).max(40) });
+
+export const saveLimp = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), limp: limpSchema }).parse(d))
+  .handler(async ({ data, context }) => {
+    const entries = [...new Set(data.limp.entries.map((entry) => entry.replace(/\\s+/g, " ").trim()).filter(Boolean))];
+    const { error } = await (context.supabase as any).from("agents").update({ limp: { enabled: data.limp.enabled, entries } }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), mode: z.enum(["alternatives", "sequence"]).optional(), audio_id: z.string().max(60).optional() });
 const btxSchema = z.object({ prompt: z.string().max(8000), rules: z.array(btxRule).max(25) });
 
@@ -178,7 +190,9 @@ export const saveBtx = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), btx: btxSchema }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase as any).from("agents").update({ btx: data.btx }).eq("id", data.id);
+    const { normalizeBtxRuleNumbering } = await import("@/lib/agents.server");
+    const btx = { ...data.btx, rules: normalizeBtxRuleNumbering(data.btx.rules) };
+    const { error } = await (context.supabase as any).from("agents").update({ btx }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
