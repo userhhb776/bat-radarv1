@@ -184,9 +184,9 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   if (isEmailOrForwardRequest(latestInbound)) {
     return { replies: ["Obrigado! Vou encaminhar o material para o setor responsável. Agradeço seu retorno e fico à disposição."], hot: false, reason: "", audioId: "", stop: true };
   }
-  const sequence = sequenceReply(hist, rules, { name: companyName, city: companyCity, niche: companyNiche }, contactName);
+  const sequence = sequenceReply(hist, rules, { name: companyName || contactName, city: companyCity, niche: companyNiche }, contactName);
   if (sequence) return { ...sequence, hot: false, reason: "", audioId: "" };
-  const matched = matchBtxRule(latestInbound, rules);
+  const matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? rules.find((r) => r.mode === "sequence") ?? null : null);
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
     if (pick) fixed = splitBubbles(fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche }));
