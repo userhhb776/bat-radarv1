@@ -53,12 +53,12 @@ describe("B-T6X linear flow", () => {
     ], rules, {}, "Cliente", true);
     expect(result?.replies).toEqual(["Passo 2: envio do catálogo"]);
   });
-  it("does not advance a sequence for a negative reply unless the classifier explicitly confirms acceptance", () => {
+  it("does not consume a negative reply as a sequence step", () => {
     const result = sequenceReply([
       { role: "assistant", content: "Passo 1: apresentação" },
       { role: "user", content: "Não tenho interesse" },
     ], rules, {}, "Cliente");
-    expect(result?.replies).toEqual([]);
+    expect(result).toBeNull();
   });
   it("seleciona regra de aceite configurada como alternativas após resposta positiva", () => {
     const acceptance = { when: "Quando o cliente aceita continuar", mode: "alternatives" as const, variants: ["Perfeito! Vou te mostrar como funciona.", "Boa! Posso te explicar os próximos passos."] };
