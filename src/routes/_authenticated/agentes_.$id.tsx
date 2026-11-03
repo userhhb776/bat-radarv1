@@ -410,7 +410,9 @@ function normalizeBtxLabels(rules: BRule[]) {
   });
   const result = rules.slice();
   for (const group of groups.values()) {
-    group.rows.sort((a, b) => a.order - b.order || a.index - b.index);
+    const orderCounts = new Set(group.rows.map((row) => row.order));
+    if (orderCounts.size === group.rows.length) group.rows.sort((a, b) => a.order - b.order || a.index - b.index);
+    else group.rows.sort((a, b) => a.index - b.index);
     group.rows.forEach((row, index) => { result[row.index] = { ...result[row.index]!, when: `${group.label} — ${group.type === "mensagem" ? "Mensagem" : "Passo"} ${index + 1}` }; });
   }
   return result;
