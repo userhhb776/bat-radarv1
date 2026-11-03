@@ -118,6 +118,8 @@ describe("B-T6X generated funnel normalization", () => {
       "Abordagem inicial — Mensagem 3",
     ]);
     expect(result.map((r) => r.variants)).toEqual([["Primeiro balão"], ["Segundo balão"], ["Terceiro balão"]]);
+    const opening = openingMessagesFor({ miner: { btx_opening: true }, btx: { rules: result } } as any);
+    expect(opening).toEqual(["Primeiro balão", "Segundo balão", "Terceiro balão"]);
   });
   it("turns customer-response sequences into separately numbered steps", () => {
     const result = normalizeGeneratedBtxRules([
