@@ -119,7 +119,6 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 authorizedAgentId = (approached ?? []).find((lead: any) => samePhone(String(lead.phone ?? ""), phone))?.agent_id as string | undefined;
               }
               const a = agents.find((x) => x.id === authorizedAgentId);
-              if (!a) continue;
               if (a) {
                 const name = String(it["pushName"] ?? "");
                 // grava sempre a mensagem do cliente, mesmo com a IA desligada ou pausada
