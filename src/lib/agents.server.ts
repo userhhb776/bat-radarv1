@@ -416,12 +416,12 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
 }
 /** Reconhece a objeção "já temos equipe/agência" sem depender da decisão probabilística do modelo. */
 export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
-  const normalized = message.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
-  const alreadyHasTeam = /\\b(ja temos|ja tem|temos uma|tem uma|ja trabalho com|trabalhamos com|ja contamos com|temos alguem|tem alguem|ja possuimos)\\b/.test(normalized)
-    && /\\b(equipe|agencia|profissional|time|pessoa|empresa|pessoal|marketing)\\b/.test(normalized);
+  const normalized = message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const alreadyHasTeam = /\b(ja temos|ja tem|temos uma|tem uma|ja trabalho com|trabalhamos com|ja contamos com|temos alguem|tem alguem|ja possuimos)\b/.test(normalized)
+    && /\b(equipe|agencia|profissional|time|pessoa|empresa|pessoal|marketing)\b/.test(normalized);
   if (!alreadyHasTeam) return null;
   return rules.find((rule) => {
-    const label = rule.when.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+    const label = rule.when.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     return /equipe|agencia|profissional|time|ja tem alguem|ja trabalha com|ja possui/.test(label)
       && rule.variants?.some((variant) => variant.trim());
   }) ?? null;
