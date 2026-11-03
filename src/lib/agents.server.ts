@@ -8,7 +8,7 @@ export type Agent = {
   active: boolean; auto_reply: boolean; training_mode: boolean; training_phone: string;
   context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner; btx?: Btx;
 };
-export type BtxRule = { when: string; variants: string[]; audio_id?: string };
+export type BtxRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string };
 export type Btx = { prompt?: string; rules?: BtxRule[] };
 export type Step = { title: string; goal: string; message: string };
 export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number; states?: string[]; btx_opening?: boolean; md_teste?: boolean; niches?: string[]; dias?: number[]; gap_min?: number; gap_max?: number };
@@ -108,7 +108,7 @@ export async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: R
     if (a.miner?.md_teste) { await logEvent(sb, a, "teste", `[md-teste] mandaria para ${String(p["telefone"])}: "${String(p["texto"]).slice(0, 220)}"`); return { ok: true, teste: true, aviso: "md-teste ligado: nada foi enviado." }; }
     if (!a.instance) return { erro: "Agente sem número de WhatsApp." };
     const { evoSend } = await import("@/lib/evolution.server");
-    await evoSend(a.instance, String(p["telefone"]), [String(p["texto"])]);
+    await evoSend(a.instance, String(p["telefone"]), [adaptGreeting(String(p["texto"]))]);
     await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone: digits(String(p["telefone"])), direction: "out", body: String(p["texto"]) });
     return { ok: true };
   }
@@ -181,13 +181,20 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   // Quando há correspondência clara, a resposta pronta é devolvida sem dar ao LLM
   // oportunidade de substituí-la por texto genérico.
   const latestInbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
+  if (isEmailOrForwardRequest(latestInbound)) {
+    return { replies: ["Obrigado! Vou encaminhar o material para o setor responsável. Agradeço seu retorno e fico à disposição."], hot: false, reason: "", audioId: "", stop: true };
+  }
+  const sequence = sequenceReply(hist, rules, { name: companyName, city: companyCity, niche: companyNiche }, contactName);
+  if (sequence) return { ...sequence, hot: false, reason: "", audioId: "" };
   const matched = matchBtxRule(latestInbound, rules);
   if (matched) {
-    const pick = pickVariant(matched.variants);
+    const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
     if (pick) fixed = splitBubbles(fillTemplate(pick, { name: companyName || contactName, city: companyCity, niche: companyNiche }));
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: false, reason: "", audioId };
   }
+  // Com B-T6X ativo, não delega ao LLM a criação de mensagens fora do roteiro.
+  if (a.btx?.prompt?.trim() || rules.length) return { replies: [], hot: false, reason: "", audioId: "" };
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
@@ -220,6 +227,40 @@ const BTX_SYNONYMS = [
   ["horario","abre","aberto","funciona","fecha"],
   ["humano","pessoa","atendente","dono","responsavel"],
 ];
+const POSITIVE_REPLY = /\b(sim|simmm|isso|isso mesmo|pode|pode ser|vamos|bora|claro|ok|okay|certo|perfeito|show|legal|gostei|tenho interesse|quero|manda|envia|pode mandar|pode enviar|me envia|me mande|segue|est[aá] bem|combinado|fechado)\b/i;
+function isPositiveReply(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return POSITIVE_REPLY.test(normalized) && !/\b(n[aã]o|nao quero|sem interesse|deixa|pare|cancele)\b/i.test(normalized);
+}
+function isEmailOrForwardRequest(message: string) {
+  return /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
+    || /encaminh(ar|a|e|amento)|pass(ar|a|e) (?:para|pro|pra) (?:o )?(?:setor|departamento|respons[aá]vel)|setor respons[aá]vel|departamento respons[aá]vel/i.test(message);
+}
+function greetingForNow(now = new Date()) {
+  const hour = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Rio_Branco", hour: "2-digit", hourCycle: "h23" }).format(now));
+  return hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
+}
+export function adaptGreeting(text: string, now = new Date()) {
+  const greeting = greetingForNow(now);
+  return text.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, (found) =>
+    found[0] === found[0]?.toUpperCase() ? greeting : greeting.toLowerCase());
+}
+function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
+  const sequences = rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()));
+  if (!sequences.length) return null;
+  const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
+  for (const rule of sequences) {
+    const rendered = rule.variants.map((v) => fillTemplate(v, lead));
+    const index = rendered.findIndex((v) => v.trim() === lastOut.trim());
+    if (index < 0) continue;
+    if (!isPositiveReply([...hist].reverse().find((h) => h.role === "user")?.content ?? "")) return { replies: [] as string[], stop: false };
+    const next = rule.variants[index + 1];
+    if (!next) return { replies: [] as string[], stop: true };
+    return { replies: splitBubbles(fillTemplate(next, { ...lead, name: lead.name || contactName })), stop: false };
+  }
+  return null;
+}
+
 export function matchBtxRule(message: string, rules: BtxRule[]) {
   const incoming = new Set(btxTerms(message));
   if (!incoming.size) return null;
@@ -285,8 +326,12 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   }
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
   if (r.replies.length) {
-    await evoSend(instance, phone, r.replies);
-    for (const b of r.replies) await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: b, hot: r.hot });
+    const outgoing = r.replies.map((b) => adaptGreeting(b));
+    await evoSend(instance, phone, outgoing);
+    for (const b of outgoing) await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: b, hot: r.hot });
+  }
+  if ((r as any).stop) {
+    await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
   }
   if (r.audioId) {
     const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", r.audioId).single();
@@ -433,7 +478,7 @@ export async function processAgentQueue(sb: SupabaseClient) {
     sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     try {
       const { evoSend } = await import("@/lib/evolution.server");
-      const texts = splitBubbles(fillTemplate(step, l));
+      const texts = splitBubbles(fillTemplate(step, l)).map((x) => adaptGreeting(x));
       await evoSend(ag.instance, l.phone, texts, openGapMs(ag));
       const phone = digits(l.phone);
       for (const b of texts) await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: b });
