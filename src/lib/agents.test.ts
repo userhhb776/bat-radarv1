@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -104,5 +104,35 @@ describe("B-T6X numbered message blocks", () => {
   it("sends all numbered messages in sequence when client accepts", () => {
     const first = sequenceReply([{ role: "assistant", content: "Abordagem inicial" }, { role: "user", content: "simm, claro!" }], numbered, {}, "Cliente");
     expect(first?.replies).toEqual(["Etapa de aceite 1", "Etapa de aceite 2\n\nparágrafo interno", "Etapa de aceite 3"]);
+  });
+});
+
+describe("B-T6X generated funnel normalization", () => {
+  it("turns sequential opening messages into separate numbered message cards", () => {
+    const result = normalizeGeneratedBtxRules([
+      { when: "Abordagem inicial", mode: "sequence" as const, variants: ["Primeiro balão", "Segundo balão", "Terceiro balão"] },
+    ]);
+    expect(result.map((r) => r.when)).toEqual([
+      "Abordagem inicial — Mensagem 1",
+      "Abordagem inicial — Mensagem 2",
+      "Abordagem inicial — Mensagem 3",
+    ]);
+    expect(result.map((r) => r.variants)).toEqual([["Primeiro balão"], ["Segundo balão"], ["Terceiro balão"]]);
+  });
+  it("turns customer-response sequences into separately numbered steps", () => {
+    const result = normalizeGeneratedBtxRules([
+      { when: "Cliente aceita receber a apresentação", mode: "sequence" as const, variants: ["Apresentação", "Enviar catálogo"] },
+    ]);
+    expect(result.map((r) => r.when)).toEqual([
+      "Cliente aceita receber a apresentação — Passo 1",
+      "Cliente aceita receber a apresentação — Passo 2",
+    ]);
+  });
+  it("keeps equivalent alternatives together in one card", () => {
+    const result = normalizeGeneratedBtxRules([
+      { when: "Cliente pergunta o preço", mode: "alternatives" as const, variants: ["Opção A", "Opção B"] },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.variants).toEqual(["Opção A", "Opção B"]);
   });
 });
