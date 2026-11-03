@@ -183,7 +183,7 @@ export const saveLimp = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), mode: z.enum(["alternatives", "sequence"]).optional(), audio_id: z.string().max(60).optional() });
+const btxRule = z.object({ when: z.string().max(300), variants: z.array(z.string().max(1500)).max(6), mode: z.enum(["alternatives", "sequence"]).optional(), audio_id: z.string().max(60).optional(), stop_after_send: z.boolean().optional() });
 const btxSchema = z.object({ prompt: z.string().max(8000), rules: z.array(btxRule).max(25) });
 
 export const saveBtx = createServerFn({ method: "POST" })
