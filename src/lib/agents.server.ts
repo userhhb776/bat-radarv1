@@ -249,7 +249,7 @@ function canonicalScriptText(value: string) {
   return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
 }
 function numberedRule(rule: BtxRule) {
-  const match = /^(.?)(?:\s[-–—:]?\s)(?:mensagem|passo)\s(\d+)\s*$/i.exec(rule.when.trim());
+  const match = /^(.*?)(?:\s*[-–—:]?\s*)(?:mensagem|passo)\s*(\d+)\s*$/i.exec(rule.when.trim());
   return match ? { key: match[1]!.trim().toLowerCase().replace(/\s+/g, " "), order: Number(match[2]) } : null;
 }
 function numberedRuleGroups(rules: BtxRule[]) {
