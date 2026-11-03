@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -45,6 +45,14 @@ describe("B-T6X linear flow", () => {
       { role: "user", content: "Sim, pode mandar" },
     ], rules, {}, "Cliente");
     expect(result?.replies).toEqual(["Passo 2: envio do catálogo"]);
+  });
+  it("seleciona regra de aceite configurada como alternativas após resposta positiva", () => {
+    const acceptance = { when: "Quando o cliente aceita continuar", mode: "alternatives" as const, variants: ["Perfeito! Vou te mostrar como funciona.", "Boa! Posso te explicar os próximos passos."] };
+    expect(matchPositiveBtxRule([acceptance])).toBe(acceptance);
+  });
+  it("não confunde regras de abertura com regras de aceite", () => {
+    const opening = { when: "Abordagem inicial - mensagem 1", variants: ["Olá!"] };
+    expect(matchPositiveBtxRule([opening])).toBeNull();
   });
   it("does not advance after a negative reply", () => {
     const result = sequenceReply([
