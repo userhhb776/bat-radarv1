@@ -169,7 +169,7 @@ describe("B-T6X duplicate numbering", () => {
       "Abordagem inicial — Mensagem 3",
       "Cliente pergunta preço — Passo 1",
     ]);
-    expect(result[1]?.variants[0]).toBe("Segundo texto\\n\\nparágrafo preservado");
+    expect(result[1]?.variants[0]).toBe("Segundo texto\n\nparágrafo preservado");
   });
 
   it("continues numbering when the generated plan splits one opening into multiple groups", () => {
