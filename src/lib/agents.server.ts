@@ -442,7 +442,14 @@ export function normalizeGeneratedBtxRules<T extends { when: string; mode?: "alt
       continue;
     }
     const opening = /abord|inic|primeir|abertura/i.test(rule.when);
-    const base = rule.when.replace(/\s*[-–—:]?\s*(mensagem|passo)\s*\d+\s*$/i, "").trim();
+    let base = rule.when.replace(/\s*[-–—:]?\s*(mensagem|passo)\s*\d+\s*$/i, "").trim();
+    const genericTitles: Array<[RegExp, string]> = [
+      [/^cliente recusou$/i, "Cliente informa que não tem interesse na proposta"],
+      [/^cliente aceita$/i, "Cliente demonstra interesse e aceita receber a apresentação"],
+      [/^cliente perguntou? (?:o )?preço$/i, "Cliente pergunta o preço ou valor do serviço"],
+      [/^cliente já tem equipe$/i, "Cliente informa que já possui equipe ou agência responsável"],
+    ];
+    base = genericTitles.find(([pattern]) => pattern.test(base))?.[1] ?? base;
     variants.forEach((message, index) => {
       normalized.push({
         ...rule,
