@@ -421,9 +421,9 @@ function Limp({ id, a }: { id: string; a: any }) {
   const qc = useQueryClient();
   const save = useServerFn(saveLimp);
   const [enabled, setEnabled] = useState<boolean>(!!a.limp?.enabled);
-  const [entriesText, setEntriesText] = useState<string>((a.limp?.entries ?? []).join("\\n"));
+  const [entriesText, setEntriesText] = useState<string>((a.limp?.entries ?? []).join("\n"));
   const [busy, setBusy] = useState(false);
-  const entries = entriesText.split(/\\r?\\n/).map((x) => x.trim()).filter(Boolean);
+  const entries = entriesText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
   return (
     <div className="space-y-3 rounded-lg border bg-card p-3">
       <div>
