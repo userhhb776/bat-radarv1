@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, normalizeBtxRuleNumbering, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor, matchLimpMessage } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -136,5 +136,51 @@ describe("B-T6X generated funnel normalization", () => {
     ]);
     expect(result).toHaveLength(1);
     expect(result[0]?.variants).toEqual(["Opção A", "Opção B"]);
+  });
+});
+
+
+describe("LIMP — Lista de Interrupção de Mensagens", () => {
+  const limp = { enabled: true, entries: ["finanças", "Não quero receber mensagens", "Remova meu número"] };
+  it("ignora assunto cadastrado mesmo com acentos e caixa diferentes", () => {
+    expect(matchLimpMessage("Quero conversar sobre FINANCAS amanhã.", limp)).toBe("finanças");
+  });
+  it("reconhece frases cadastradas mesmo com pontuação diferente", () => {
+    expect(matchLimpMessage("Não quero receber mensagens!", limp)).toBe("Não quero receber mensagens");
+  });
+  it("não bloqueia quando LIMP está desligado ou quando não há correspondência", () => {
+    expect(matchLimpMessage("Quero saber o preço", { ...limp, enabled: false })).toBeNull();
+    expect(matchLimpMessage("Quero saber o preço", limp)).toBeNull();
+  });
+});
+
+describe("B-T6X duplicate numbering", () => {
+  it("renumbers repeated stages without changing message content or paragraphs", () => {
+    const rules = [
+      { when: "Abordagem inicial — Mensagem 1", variants: ["Primeiro texto"] },
+      { when: "Abordagem inicial — Mensagem 1", variants: ["Segundo texto\\n\\nparágrafo preservado"] },
+      { when: "Abordagem inicial — Mensagem 3", variants: ["Terceiro texto"] },
+      { when: "Cliente pergunta preço — Passo 1", variants: ["Preço"] },
+    ];
+    const result = normalizeBtxRuleNumbering(rules);
+    expect(result.map((r) => r.when)).toEqual([
+      "Abordagem inicial — Mensagem 1",
+      "Abordagem inicial — Mensagem 2",
+      "Abordagem inicial — Mensagem 3",
+      "Cliente pergunta preço — Passo 1",
+    ]);
+    expect(result[1]?.variants[0]).toBe("Segundo texto\\n\\nparágrafo preservado");
+  });
+
+  it("continues numbering when the generated plan splits one opening into multiple groups", () => {
+    const result = normalizeGeneratedBtxRules([
+      { when: "Abordagem inicial", mode: "sequence", variants: ["Mensagem A", "Mensagem B"] },
+      { when: "Abordagem inicial", mode: "sequence", variants: ["Mensagem C"] },
+    ]);
+    expect(result.map((r) => r.when)).toEqual([
+      "Abordagem inicial — Mensagem 1",
+      "Abordagem inicial — Mensagem 2",
+      "Abordagem inicial — Mensagem 3",
+    ]);
   });
 });
