@@ -24,6 +24,8 @@ const groups = [
     { title: "Bloco de leads", url: "/blocos", icon: Layers },
     { title: "Campanhas", url: "/campanhas", icon: Megaphone },
     { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+  ] },
+  { label: "Modo AGT", items: [
     { title: "Agentes", url: "/agentes", icon: Bot },
   ] },
   { label: "Vendas", items: [

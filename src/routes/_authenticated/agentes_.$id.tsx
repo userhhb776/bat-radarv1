@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, varyMessage, buildBtxPlan } from "@/lib/agent-cockpit.functions";
+import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
 import { STATES } from "@/lib/mining-options";
 import { talkToAgent } from "@/lib/agents.functions";
 
@@ -61,7 +61,7 @@ function Cockpit() {
             <TabsTrigger value="falar">Dar ordens</TabsTrigger>
           </TabsList>
           <TabsContent value="btx"><Btx id={id} a={a} audios={data.audios as any[]} /></TabsContent>
-          <TabsContent value="vivo"><Live events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
+          <TabsContent value="vivo"><Live id={id} events={data.events as any[]} leads={data.leads as any[]} /></TabsContent>
           <TabsContent value="conversas"><Chats id={id} messages={data.messages as any[]} paused={data.paused as string[]} /></TabsContent>
           <TabsContent value="minerador"><Miner id={id} a={a} leads={data.leads as any[]} events={data.events as any[]} /></TabsContent>
           <TabsContent value="roteiro"><Script id={id} a={a} /></TabsContent>
@@ -75,7 +75,11 @@ function Cockpit() {
   );
 }
 
-function Live({ events, leads }: { events: any[]; leads: any[] }) {
+function Live({ id, events, leads }: { id: string; events: any[]; leads: any[] }) {
+  const qc = useQueryClient();
+  const approve = useServerFn(approveTest);
+  const [busy, setBusy] = useState(false);
+  const tests = leads.filter((l) => l.status === "teste");
   const queue = leads.filter((l) => l.status === "fila").sort((x, y) => String(x.send_at).localeCompare(String(y.send_at))).slice(0, 8);
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -88,7 +92,11 @@ function Live({ events, leads }: { events: any[]; leads: any[] }) {
         <h3 className="mb-2 font-semibold">Próximas abordagens</h3>
         {!queue.length && <p className="text-sm text-muted-foreground">Fila vazia.</p>}
         <ul className="space-y-1.5 text-sm">{queue.map((l) => <li key={l.id} className="flex justify-between gap-2"><span className="truncate">{l.name}</span><span className="shrink-0 text-xs text-muted-foreground">{new Date(l.send_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Rio_Branco" })}</span></li>)}</ul>
-        <p className="mt-2 text-xs text-muted-foreground">Abordagens saem de seg a sáb, das 8h às 18h.</p>
+        {tests.length > 0 && <div className="mt-3 space-y-1 border-t pt-2">
+          <p className="text-xs text-muted-foreground">{tests.length} empresa(s) do treino aguardando: {tests.slice(0, 5).map((l) => l.name).join(", ")}{tests.length > 5 ? "…" : ""}</p>
+          <Button size="sm" disabled={busy} onClick={async () => { if (!confirm(`Aprovar e colocar ${tests.length} empresas na fila real de envio?`)) return; setBusy(true); try { const r = await approve({ data: { id } }); toast.success(`${r.aprovadas} empresas foram para a fila real`); qc.invalidateQueries({ queryKey: ["cockpit", id] }); } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); } }}>Aprovar e começar de verdade</Button>
+        </div>}
+        <p className="mt-2 text-xs text-muted-foreground">Os envios seguem os dias e horários configurados no agente.</p>
       </div>
     </div>
   );
