@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -60,5 +60,27 @@ describe("B-T6X linear flow", () => {
   it("adapts greetings to Rio Branco send time", () => {
     expect(adaptGreeting("Bom dia, tudo bem?", new Date("2026-11-02T18:00:00Z"))).toBe("Boa tarde, tudo bem?");
     expect(adaptGreeting("Boa noite!", new Date("2026-11-02T15:00:00Z"))).toBe("Bom dia!");
+  });
+});
+
+describe("B-T6X numbered message blocks", () => {
+  const numbered = [
+    { when: "Abordagem inicial - mensagem 2", variants: ["Segundo bloco\n\ncom parágrafo preservado"] },
+    { when: "Abordagem inicial - mensagem 1", variants: ["Primeiro bloco\n\ncom outro parágrafo"] },
+    { when: "Cliente aceita - mensagem 2", variants: ["Etapa de aceite 2\n\nparágrafo interno"] },
+    { when: "Cliente aceita - mensagem 1", variants: ["Etapa de aceite 1"] },
+    { when: "Cliente aceita - mensagem 3", variants: ["Etapa de aceite 3"] },
+  ];
+  it("keeps paragraphs intact and orders numbered opening blocks", () => {
+    const blocks = openingMessagesFor({ miner: { btx_opening: true }, btx: { rules: numbered } } as any);
+    expect(blocks).toEqual(["Primeiro bloco\n\ncom outro parágrafo", "Segundo bloco\n\ncom parágrafo preservado"]);
+  });
+  it("starts the acceptance sequence on an affirmative and advances one numbered rule", () => {
+    const first = sequenceReply([{ role: "assistant", content: "Abordagem inicial" }, { role: "user", content: "simm, claro!" }], numbered, {}, "Cliente");
+    expect(first?.replies).toEqual(["Etapa de aceite 1"]);
+    const second = sequenceReply([{ role: "assistant", content: "Etapa de aceite 1" }, { role: "user", content: "pode ser" }], numbered, {}, "Cliente");
+    expect(second?.replies).toEqual(["Etapa de aceite 2\n\nparágrafo interno"]);
+    const third = sequenceReply([{ role: "assistant", content: "Etapa de aceite 2\n\nparágrafo interno" }, { role: "user", content: "bora" }], numbered, {}, "Cliente");
+    expect(third?.replies).toEqual(["Etapa de aceite 3"]);
   });
 });
