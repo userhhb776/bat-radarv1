@@ -248,18 +248,54 @@ export function adaptGreeting(text: string, now = new Date()) {
 function canonicalScriptText(value: string) {
   return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
 }
+function numberedRule(rule: BtxRule) {
+  const match = /^(.*?)(?:\\s*[-–—:]?\\s*)(?:mensagem|passo)\\s*(\\d+)\\s*$/i.exec(rule.when.trim());
+  return match ? { key: match[1]!.trim().toLowerCase().replace(/\\s+/g, " "), order: Number(match[2]) } : null;
+}
+function numberedRuleGroups(rules: BtxRule[]) {
+  const groups = new Map<string, Array<{ rule: BtxRule; order: number }>>();
+  for (const rule of rules) {
+    const parsed = numberedRule(rule);
+    if (!parsed) continue;
+    const group = groups.get(parsed.key) ?? [];
+    group.push({ rule, order: parsed.order });
+    groups.set(parsed.key, group);
+  }
+  return [...groups.entries()].map(([key, items]) => ({ key, items: items.sort((a, b) => a.order - b.order) }));
+}
+export function openingMessagesFor(a: Agent) {
+  if (a.miner?.btx_opening) {
+    const rules = a.btx?.rules ?? [];
+    const numbered = numberedRuleGroups(rules).find((g) => /abord|inic|primeir|abertura/.test(g.key));
+    if (numbered) return numbered.items.map(({ rule }) => rule.variants.find((v) => v.trim()) ?? "").filter(Boolean);
+    const r = rules.find((x) => /abord|inic|primeir|abertura/i.test(x.when ?? "") && x.variants?.some((v) => v.trim()));
+    if (r) return [r.mode === "sequence" ? r.variants.find((v) => v.trim()) ?? "" : pickVariant(r.variants)].filter(Boolean);
+  }
+  return a.script_steps?.[0]?.message ? [a.script_steps[0].message] : [];
+}
 export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
-  const sequences = rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()));
-  if (!sequences.length) return null;
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
-  for (const rule of sequences) {
-    const rendered = rule.variants.map((v) => { const bubbles = splitBubbles(fillTemplate(v, lead)); return bubbles[bubbles.length - 1] ?? ""; });
+  const inbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
+  if (!isPositiveReply(inbound)) return null;
+  const numbered = numberedRuleGroups(rules).filter((g) => /aceit|interess|proposta|continua|avanc|pode enviar|quer receber/.test(g.key));
+  for (const group of numbered) {
+    const rendered = group.items.map(({ rule }) => fillTemplate(rule.variants.find((v) => v.trim()) ?? "", { ...lead, name: lead.name || contactName }));
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
-    if (index < 0) continue;
-    if (!isPositiveReply([...hist].reverse().find((h) => h.role === "user")?.content ?? "")) return { replies: [] as string[], stop: false };
-    const next = rule.variants[index + 1];
-    if (!next) return { replies: [] as string[], stop: true };
-    return { replies: splitBubbles(fillTemplate(next, { ...lead, name: lead.name || contactName })), stop: false };
+    if (index >= 0) {
+      const next = rendered[index + 1];
+      return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
+    }
+    if (!lastOut || !rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut))) {
+      return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
+    }
+  }
+  for (const rule of rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()))) {
+    const rendered = rule.variants.map((v) => fillTemplate(v, { ...lead, name: lead.name || contactName }));
+    const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
+    if (index >= 0) {
+      const next = rendered[index + 1];
+      return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
+    }
   }
   return null;
 }
@@ -359,13 +395,7 @@ export function fillTemplate(t: string, l: { name?: string | null; city?: string
 export const FACTORY = { nota_minima: 3.8, min_reviews: 5, min_photos: 3 };
 
 /** Abordagem inicial: usa a situação de abertura do B-T6X (variação sorteada) ou a 1ª etapa do roteiro. */
-export function openingFor(a: Agent) {
-  if (a.miner?.btx_opening) {
-    const r = (a.btx?.rules ?? []).find((x) => /abord|inic|primeir|abertura/i.test(x.when ?? "") && x.variants?.some((v) => v.trim()));
-    if (r) { const v = r.variants.filter((x) => x.trim()); return r.mode === "sequence" ? v[0] ?? "" : v[Math.floor(Math.random() * v.length)]!; }
-  }
-  return a.script_steps?.[0]?.message ?? "";
-}
+export function openingFor(a: Agent) { return openingMessagesFor(a)[0] ?? ""; }
 
 /** Cidades permitidas: só as dos estados marcados (uma cidade pedida fora deles é ignorada). */
 export async function citiesFor(m: Miner, city?: unknown) {
