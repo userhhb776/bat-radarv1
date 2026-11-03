@@ -245,13 +245,16 @@ export function adaptGreeting(text: string, now = new Date()) {
   return text.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, (found) =>
     found[0] === found[0]?.toUpperCase() ? greeting : greeting.toLowerCase());
 }
+function canonicalScriptText(value: string) {
+  return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
+}
 function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
   const sequences = rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()));
   if (!sequences.length) return null;
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   for (const rule of sequences) {
-    const rendered = rule.variants.map((v) => fillTemplate(v, lead));
-    const index = rendered.findIndex((v) => v.trim() === lastOut.trim());
+    const rendered = rule.variants.map((v) => splitBubbles(fillTemplate(v, lead)).at(-1) ?? "");
+    const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index < 0) continue;
     if (!isPositiveReply([...hist].reverse().find((h) => h.role === "user")?.content ?? "")) return { replies: [] as string[], stop: false };
     const next = rule.variants[index + 1];
@@ -289,7 +292,7 @@ function btxText(a: Agent) {
   if (!b.prompt?.trim() && !rules.length) return "";
   return `ROTEIRO B-T6X (PRIORIDADE MÁXIMA — siga à risca, não invente fora dele):
 ${b.prompt?.trim() ?? ""}
-${rules.length ? "SITUAÇÕES COM RESPOSTA PRONTA (quando a fala do cliente combinar, chame responder_btx com o número, sem escrever texto):\n" + rules.map((r, i) => `${i + 1}. Quando: ${r.when}`).join("\n") : ""}`;
+${rules.length ? "SITUAÇÕES COM RESPOSTA PRONTA (quando a fala do cliente combinar, chame responder_btx com o número, sem escrever texto):\n" + rules.map((r, i) => `${i + 1}. Quando: ${r.when} — ${r.mode === "sequence" ? "SEQUÊNCIA LINEAR, respeite a ordem dos passos" : "alternativas equivalentes"}`).join("\n") : ""}`;
 }
 
 export function splitBubbles(t: string) {
@@ -359,7 +362,7 @@ export const FACTORY = { nota_minima: 3.8, min_reviews: 5, min_photos: 3 };
 export function openingFor(a: Agent) {
   if (a.miner?.btx_opening) {
     const r = (a.btx?.rules ?? []).find((x) => /abord|inic|primeir|abertura/i.test(x.when ?? "") && x.variants?.some((v) => v.trim()));
-    if (r) { const v = r.variants.filter((x) => x.trim()); return v[Math.floor(Math.random() * v.length)]!; }
+    if (r) { const v = r.variants.filter((x) => x.trim()); return r.mode === "sequence" ? v[0] ?? "" : v[Math.floor(Math.random() * v.length)]!; }
   }
   return a.script_steps?.[0]?.message ?? "";
 }
