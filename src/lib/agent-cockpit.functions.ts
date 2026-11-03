@@ -236,7 +236,7 @@ export const startTestV2 = createServerFn({ method: "POST" })
     const phone = "5568992316302";
     await (context.supabase as any).from("agents").update({ active: true, training_mode: true, training_phone: phone, miner: { ...(a.miner ?? {}), md_teste: false } }).eq("id", a.id);
     const { evoSend } = await import("@/lib/evolution.server");
-    const { splitBubbles, openGapMs, adaptGreeting } = await import("@/lib/agents.server");
+    const { splitBubbles, openGapMs } = await import("@/lib/agents.server");
     const texts = splitBubbles(fillTemplate(msg, { name: "Empresa Teste", city: "Rio Branco" } as any)).map((x) => adaptGreeting(x));
     await evoSend(a.instance, phone, texts, openGapMs(a));
     for (const b of texts) await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: b });
