@@ -6,10 +6,11 @@ export type Agent = {
   id: string; user_id: string; name: string; mission: string; offer: string; rules: string; ideal_client: string;
   learned: string; instance: string; ai_provider: string; ai_key: string | null; model: string;
   active: boolean; auto_reply: boolean; training_mode: boolean; training_phone: string;
-  context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner; btx?: Btx;
+  context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner; btx?: Btx; limp?: Limp;
 };
 export type BtxRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string };
 export type Btx = { prompt?: string; rules?: BtxRule[] };
+export type Limp = { enabled?: boolean; entries?: string[] };
 export type Step = { title: string; goal: string; message: string };
 export type Miner = { niche?: string; city?: string; sem_site?: boolean; nota_minima?: number; daily?: number; auto?: boolean; auto_approach?: boolean; min_reviews?: number; min_photos?: number; web_scan?: boolean; hora_inicio?: number; hora_fim?: number; limite_dia?: number; states?: string[]; btx_opening?: boolean; md_teste?: boolean; niches?: string[]; dias?: number[]; gap_min?: number; gap_max?: number };
 
@@ -372,6 +373,22 @@ export function openingMessagesFor(a: Agent) {
   }
   return a.script_steps?.[0]?.message ? [a.script_steps[0].message] : [];
 }
+/** Normaliza termos do LIMP para comparação literal, ignorando acentos, caixa e pontuação. */
+function normalizeLimpText(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+
+/** Retorna a entrada configurada que apareceu na mensagem, sem chamar a IA. */
+export function matchLimpMessage(message: string, limp?: Limp) {
+  if (!limp?.enabled) return null;
+  const normalized = ` ${normalizeLimpText(message)} `;
+  for (const entry of limp.entries ?? []) {
+    const term = normalizeLimpText(entry);
+    if (term.length >= 3 && normalized.includes(` ${term} `)) return entry;
+  }
+  return null;
+}
+
 export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string, forceAdvance = false) {
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   const inbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
@@ -432,6 +449,29 @@ export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
  * O runtime agrupa "Mensagem N" para a abertura e "Passo N" para sequências
  * de conversa; assim, mensagens consecutivas nunca aparecem como variações.
  */
+/** Corrige numeração repetida de cartões com o mesmo título-base e tipo. */
+export function normalizeBtxRuleNumbering<T extends { when: string }>(rules: T[]): T[] {
+  const groups = new Map<string, { label: string; type: "mensagem" | "passo"; entries: Array<{ index: number; order: number }> }>();
+  rules.forEach((rule, index) => {
+    const match = /^(.*?)(?:\s*[-–—:]?\s*)(mensagem|passo)\s*(\d+)\s*$/i.exec(rule.when.trim());
+    if (!match) return;
+    const label = match[1]!.trim();
+    const type = match[2]!.toLowerCase() as "mensagem" | "passo";
+    const key = `${label.toLowerCase().replace(/\s+/g, " ")}|${type}`;
+    const group = groups.get(key) ?? { label, type, entries: [] };
+    group.entries.push({ index, order: Number(match[3]) });
+    groups.set(key, group);
+  });
+  const result = rules.slice();
+  for (const group of groups.values()) {
+    group.entries.sort((a, b) => a.order - b.order || a.index - b.index);
+    group.entries.forEach((entry, index) => {
+      result[entry.index] = { ...result[entry.index]!, when: `${group.label} — ${group.type === "mensagem" ? "Mensagem" : "Passo"} ${index + 1}` };
+    });
+  }
+  return result;
+}
+
 export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>): Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> {
   const normalized: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> = [];
   for (const rule of rules) {
@@ -459,7 +499,7 @@ export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "
       });
     });
   }
-  return normalized.slice(0, 25);
+  return normalizeBtxRuleNumbering(normalized).slice(0, 25);
 }
 
 export function matchBtxRule(message: string, rules: BtxRule[]) {
@@ -523,13 +563,25 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   const { data: paused } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).eq("phone", phone).maybeSingle();
   if (paused) return { skipped: "pausado" };
 
+  const { data: inbound } = await sb.from("agent_messages").select("created_at,body").eq("id", inboundId).eq("agent_id", a.id).maybeSingle();
+  if (!inbound) return { skipped: "mensagem_nao_encontrada" };
+
+  // LIMP é a primeira barreira: mensagem listada nunca chega ao B-T6X nem à IA.
+  const limpMatch = matchLimpMessage(String(inbound.body ?? ""), a.limp);
+  if (limpMatch) {
+    const normalized = normalizeLimpText(String(inbound.body ?? ""));
+    const isOptOut = /\b(parar|pare|remova|remover|exclua|excluir|nao quero receber|nao me mande|nao entre em contato|tire meu numero)\b/.test(normalized);
+    if (isOptOut) await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
+    await logEvent(sb, a, "limp_ignorada", `LIMP: mensagem de ${name || phone} ignorada pela regra "${limpMatch}".`);
+    return { skipped: "limp", reason: limpMatch, manual: isOptOut };
+  }
+
   // Respostas após 15 minutos desde a última mensagem do agente passam para atendimento manual.
-  // agent_pauses mantém o bloqueio mesmo após reinícios do servidor.
-  const [{ data: inbound }, { data: lastOutbound }] = await Promise.all([
-    sb.from("agent_messages").select("created_at").eq("id", inboundId).eq("agent_id", a.id).maybeSingle(),
-    sb.from("agent_messages").select("created_at").eq("agent_id", a.id).eq("phone", phone).eq("direction", "out").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-  ]);
-  if (inbound?.created_at && lastOutbound?.created_at) {
+  // Busca somente uma mensagem enviada antes desta resposta, evitando comparar com envios posteriores.
+  const { data: lastOutbound } = await sb.from("agent_messages").select("created_at")
+    .eq("agent_id", a.id).eq("phone", phone).eq("direction", "out")
+    .lt("created_at", inbound.created_at).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (inbound.created_at && lastOutbound?.created_at) {
     const elapsed = new Date(inbound.created_at).getTime() - new Date(lastOutbound.created_at).getTime();
     if (elapsed > 15 * 60 * 1000) {
       await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
