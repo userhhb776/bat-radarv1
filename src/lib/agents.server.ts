@@ -166,7 +166,9 @@ JEITO DE FALAR (obrigatório):
 - Responda exatamente o que perguntaram e termine com no máximo UMA pergunta.
 - Nunca se reapresente nem repita a abertura. Continue do histórico.
 - PROIBIDO: "BatRadar", afirmar que é o dono, trocar seu nome por outro, "presença online", "visibilidade", "soluções", "alavancar", "transformação digital", listas com marcadores, textos de propaganda, emojis em toda frase.
-- Se perguntarem se você é IA/robô, não minta nem finja ser uma pessoa humana: responda casualmente que é o assistente virtual da equipe, por exemplo: "Kkk sou o assistente virtual da equipe do ${a.name}, mas consigo te ajudar por aqui 😄". Em seguida, retome o assunto da empresa sem formalidade.
+- Se perguntarem se você é IA/robô, responda leve e curto como ${a.name} da equipe (ex: "Kkk sou o ${a.name} aqui da equipe, correria hoje") e volte ao assunto. Nunca diga "assistente virtual".
+- PROIBIDO abrir com "Com certeza", "Entendo perfeitamente", "Ótima pergunta", "Fico feliz". Nada de texto de telemarketing.
+- Se houver ROTEIRO B-T6X, use as frases dele; fora dele, responda no mesmo estilo das mensagens do roteiro, sem inventar oferta nova.
 - Não invente preço, prazo ou desconto; se perguntarem, diga que confirma e chame avisar_dono.
 ${audios.length ? `ÁUDIOS DISPONÍVEIS (prefira áudio quando o gatilho bater; aí responda com texto vazio ou bem curto):\n${audios.map((x) => `- id ${x.id}: "${x.title}" — enviar quando: ${x.trigger || x.title}`).join("\n")}` : ""}
 ${tone ? `TOM DOS SCRIPTS DO DONO (imite, não copie):\n${tone}` : ""}
@@ -411,22 +413,24 @@ export function invalidPhone(err: string, phone: string | null) {
 export async function processAgentQueue(sb: SupabaseClient) {
   const today = new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10) + "T05:00:00Z";
   const sentToday = new Map<string, number>();
-  const { data: due } = await sb.from("agent_leads").select("*").eq("status", "fila").lte("send_at", new Date().toISOString()).order("send_at").limit(8);
+  const { data: due } = await sb.from("agent_leads").select("*").eq("status", "fila").lte("send_at", new Date().toISOString()).order("send_at").limit(60);
   let sent = 0;
   for (const l of (due ?? []) as any[]) {
-    const { data: ag0 } = await sb.from("agents").select("miner").eq("id", l.agent_id).single();
+    if (sent >= 8) break;
+    const { data: ag0 } = await sb.from("agents").select("miner,active").eq("id", l.agent_id).single();
     const m0 = ((ag0 as any)?.miner ?? {}) as Miner;
+    // Agente desligado ou em md-teste: mantém na fila sem enviar (nunca dispara sozinho e não perde a empresa).
+    if (!(ag0 as any)?.active || m0.md_teste) continue;
     if (!inWindow(m0)) continue;
     if (!sentToday.has(l.agent_id)) { const { count } = await sb.from("agent_events").select("id", { count: "exact", head: true }).eq("agent_id", l.agent_id).eq("kind", "abordou").gte("created_at", today); sentToday.set(l.agent_id, count ?? 0); }
     if (sentToday.get(l.agent_id)! >= (m0.limite_dia ?? 30)) continue;
-    sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     const { data: got } = await sb.from("agent_leads").update({ status: "enviando" }).eq("id", l.id).eq("status", "fila").select("id");
     if (!got?.length) continue;
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
     const ag = a as any as Agent | null;
     const step = ag ? openingFor(ag) : "";
-    if (ag?.miner?.md_teste) { await sb.from("agent_leads").update({ status: "novo", send_at: null }).eq("id", l.id); continue; }
-    if (!ag || !ag.active || !ag.instance || !step) { await sb.from("agent_leads").update({ status: "novo", send_at: null }).eq("id", l.id); continue; }
+    if (!ag || !ag.instance || !step) { await sb.from("agent_leads").update({ status: "fila" }).eq("id", l.id); continue; }
+    sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     try {
       const { evoSend } = await import("@/lib/evolution.server");
       const texts = splitBubbles(fillTemplate(step, l));
