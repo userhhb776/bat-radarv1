@@ -205,6 +205,7 @@ export type Database = {
           id: string
           manual: boolean
           phone: string
+          provider_message_id: string | null
           user_id: string
         }
         Insert: {
@@ -217,6 +218,7 @@ export type Database = {
           id?: string
           manual?: boolean
           phone: string
+          provider_message_id?: string | null
           user_id: string
         }
         Update: {
