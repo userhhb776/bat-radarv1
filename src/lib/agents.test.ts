@@ -158,7 +158,7 @@ describe("B-T6X duplicate numbering", () => {
   it("renumbers repeated stages without changing message content or paragraphs", () => {
     const rules = [
       { when: "Abordagem inicial — Mensagem 1", variants: ["Primeiro texto"] },
-      { when: "Abordagem inicial — Mensagem 1", variants: ["Segundo texto\\n\\nparágrafo preservado"] },
+      { when: "Abordagem inicial — Mensagem 1", variants: ["Segundo texto\n\nparágrafo preservado"] },
       { when: "Abordagem inicial — Mensagem 3", variants: ["Terceiro texto"] },
       { when: "Cliente pergunta preço — Passo 1", variants: ["Preço"] },
     ];
