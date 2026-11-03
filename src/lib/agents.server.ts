@@ -335,7 +335,7 @@ export function isEmailOrForwardRequest(message: string) {
     || /encaminh(ar|a|e|amento)|pass(ar|a|e) (?:para|pro|pra) (?:o )?(?:setor|departamento|respons[aá]vel)|setor respons[aá]vel|departamento respons[aá]vel/i.test(message);
 }
 function greetingForNow(now = new Date()) {
-  const hour = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Rio_Branco", hour: "2-digit", hourCycle: "h23" }).format(now));
+  const hour = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hourCycle: "h23" }).format(now));
   return hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
 }
 export function adaptGreeting(text: string, now = new Date()) {
@@ -522,6 +522,22 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function humanReply(sb: SupabaseClient, a: Agent, key: string, instance: string, phone: string, name: string, inboundId: string) {
   const { data: paused } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).eq("phone", phone).maybeSingle();
   if (paused) return { skipped: "pausado" };
+
+  // Respostas após 15 minutos desde a última mensagem do agente passam para atendimento manual.
+  // agent_pauses mantém o bloqueio mesmo após reinícios do servidor.
+  const [{ data: inbound }, { data: lastOutbound }] = await Promise.all([
+    sb.from("agent_messages").select("created_at").eq("id", inboundId).eq("agent_id", a.id).maybeSingle(),
+    sb.from("agent_messages").select("created_at").eq("agent_id", a.id).eq("phone", phone).eq("direction", "out").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (inbound?.created_at && lastOutbound?.created_at) {
+    const elapsed = new Date(inbound.created_at).getTime() - new Date(lastOutbound.created_at).getTime();
+    if (elapsed > 15 * 60 * 1000) {
+      await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
+      await logEvent(sb, a, "transferencia_manual", "Contato " + (name || phone) + " transferido para atendimento manual: resposta após mais de 15 minutos.");
+      return { skipped: "fora_da_janela_15_min", manual: true };
+    }
+  }
+
   await sleep(paceDelayMs(a.pace));
   const { data: last } = await sb.from("agent_messages").select("id,direction,manual").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
