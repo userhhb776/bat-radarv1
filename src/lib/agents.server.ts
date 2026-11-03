@@ -252,7 +252,8 @@ Quando o cliente demonstrar interesse real, pedir preço, quiser fechar ou pedir
   // Quando há correspondência clara, a resposta pronta é devolvida sem dar ao LLM
   // oportunidade de substituí-la por texto genérico.
   const latestInbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
-  if (isEmailOrForwardRequest(latestInbound)) {
+  // Sem B-T6X, preserva o comportamento legado. Com roteiro ativo, a IA deve escolher uma situação cadastrada.
+  if (isEmailOrForwardRequest(latestInbound) && !rules.length) {
     return { replies: ["Obrigado! Vou encaminhar o material para o setor responsável. Agradeço seu retorno e fico à disposição."], hot: false, reason: "", audioId: "", stop: true };
   }
   const leadContext = { name: companyName || contactName, city: companyCity, niche: companyNiche };
