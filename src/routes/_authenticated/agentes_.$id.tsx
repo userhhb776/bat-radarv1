@@ -395,7 +395,7 @@ function Talk({ id, name }: { id: string; name: string }) {
 function F({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1"><Label>{label}</Label>{children}</div>; }
 function Row({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) { return <div className="flex items-center justify-between gap-2"><Label>{label}</Label><Switch checked={v} onCheckedChange={on} /></div>; }
 
-type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string | undefined };
+type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence" | undefined; audio_id?: string | undefined };
 function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
   const qc = useQueryClient();
   const save = useServerFn(saveBtx), vary = useServerFn(varyMessage), plan = useServerFn(buildBtxPlan);
@@ -421,7 +421,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
             <Input value={r.when} onChange={(e) => setRule(i, { when: e.target.value })} placeholder="Quando… (ex: cliente aceita receber a apresentação)" />
             <Button size="icon" variant="ghost" onClick={() => setRules(rules.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2"><Label className="text-xs">Tipo de resposta</Label><select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.mode ?? "alternatives"} onChange={(e) => setRule(i, { mode: e.target.value as BRule["mode"] })}><option value="alternatives">Alternativas (sortear)</option><option value="sequence">Sequência linear (em ordem)</option></select></div>
+          <div className="flex flex-wrap items-center gap-2"><Label className="text-xs">Tipo de resposta</Label><select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.mode ?? "alternatives"} onChange={(e) => setRule(i, { mode: (e.target.value as "alternatives" | "sequence") || undefined })}><option value="alternatives">Alternativas (sortear)</option><option value="sequence">Sequência linear (em ordem)</option></select></div>
           {r.variants.map((v, k) => (
             <div key={k} className="flex items-start gap-1">
               <Textarea rows={2} value={v} onChange={(e) => setVar(i, k, e.target.value)} placeholder={r.mode === "sequence" ? `Passo ${k + 1}` : `Variação ${k + 1}`} />
