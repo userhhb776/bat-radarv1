@@ -83,9 +83,9 @@ describe("B-T6X linear flow", () => {
     expect(isEmailOrForwardRequest("Pode enviar para contato@empresa.com")).toBe(true);
     expect(isEmailOrForwardRequest("Encaminhe ao setor responsável")).toBe(true);
   });
-  it("adapts greetings to Rio Branco send time", () => {
+  it("adapts greetings to Sao Paulo send time", () => {
     expect(adaptGreeting("Bom dia, tudo bem?", new Date("2026-11-02T18:00:00Z"))).toBe("Boa tarde, tudo bem?");
-    expect(adaptGreeting("Boa noite!", new Date("2026-11-02T15:00:00Z"))).toBe("Bom dia!");
+    expect(adaptGreeting("Boa noite!", new Date("2026-11-02T15:00:00Z"))).toBe("Boa tarde!");
   });
 });
 
