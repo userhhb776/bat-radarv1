@@ -73,7 +73,7 @@ describe("B-T6X linear flow", () => {
       { role: "assistant", content: "Passo 1: apresentação" },
       { role: "user", content: "Não tenho interesse" },
     ], rules, {}, "Cliente");
-    expect(result?.replies).toEqual([]);
+    expect(result).toBeNull();
   });
   it("detects email and forwarding requests", () => {
     expect(isEmailOrForwardRequest("Pode enviar para contato@empresa.com")).toBe(true);
