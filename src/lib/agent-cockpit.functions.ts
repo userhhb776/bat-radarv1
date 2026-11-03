@@ -214,7 +214,7 @@ export const buildBtxPlan = createServerFn({ method: "POST" })
     const a = await loadAgent(sb, data.id);
     const { data: blocks } = await sb.from("scripts").select("title,body,message2,message3");
     const ref = (blocks ?? []).map((s: any) => `[${s.title}]\n${[s.body, s.message2, s.message3].filter(Boolean).join("\n---\n")}`).join("\n\n").slice(0, 5000);
-    const out = await ask(a, `Você é um arquiteto de fluxos de WhatsApp. Converta as instruções do dono em um funil operacional, fiel ao conteúdo original. Responda APENAS JSON válido neste formato: {"rules":[{"when":"título claro e específico","mode":"alternatives","variants":["texto"]}]}.
+    const out = await ask(a, `Você é um arquiteto de fluxos de WhatsApp. Converta as instruções do dono em um funil operacional, fiel ao conteúdo original. Responda APENAS JSON válido neste formato: {"rules":[{"when":"Abordagem inicial","mode":"sequence","variants":["Texto completo da mensagem 1","Texto completo da mensagem 2"]},{"when":"Cliente pergunta o preço do serviço","mode":"alternatives","variants":["Resposta equivalente A","Resposta equivalente B"]}]}. O primeiro exemplo é uma sequência de mensagens diferentes; o segundo são alternativas intercambiáveis.
 
 REGRAS OBRIGATÓRIAS DE ESTRUTURA:
 1. Cada cartão ("when") representa uma situação ou uma mensagem numerada, com título descritivo. Nunca use títulos vagos como "abordagem inicial", "cliente recusou", "cliente aceitou" ou "resposta".
