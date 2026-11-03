@@ -239,7 +239,7 @@ export function matchPositiveBtxRule(rules: BtxRule[]) {
     if (!rule.variants?.some((variant) => variant.trim())) return false;
     const label = String(rule.when ?? "").toLowerCase();
     if (/abord|inic|primeir|abertura/.test(label)) return false;
-    return /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode (?:mandar|enviar)|responde.*sim|resposta.*sim|cliente.*\\bsim\\b/i.test(label);
+    return /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode (?:mandar|enviar)|responde.*sim|resposta.*sim|cliente.*\bsim\b/i.test(label);
   }) ?? null;
 }
 export function isEmailOrForwardRequest(message: string) {
