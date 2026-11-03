@@ -94,10 +94,32 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any).id);
                 continue;
               }
-              // escolhe o agente que já conversa com esse contato (tolerante ao 9º dígito)
+              // Segurança: só responde a contatos que este agente realmente abordou.
+              // A autorização vem de um envio registrado pelo agente ou de um lead próprio já abordado.
+              // Falha fechada: se não houver prova de abordagem, nenhuma conversa/IA é iniciada.
               const tail = phone.replace(/\D/g, "").slice(-8);
-              const { data: owner } = await sb.from("agent_messages").select("agent_id").in("agent_id", agents.map((x) => x.id)).like("phone", `%${tail}`).order("created_at", { ascending: false }).limit(1);
-              const a = agents.find((x) => x.id === (owner as any)?.[0]?.agent_id) ?? agents.find((x) => x.auto_reply) ?? agents[0];
+              if (tail.length < 6) continue;
+              const agentIds = agents.map((x) => x.id);
+              const { data: outbound } = await sb.from("agent_messages")
+                .select("agent_id,created_at")
+                .in("agent_id", agentIds)
+                .eq("direction", "out")
+                .like("phone", `%${tail}`)
+                .order("created_at", { ascending: false })
+                .limit(1);
+              let authorizedAgentId = (outbound as any)?.[0]?.agent_id as string | undefined;
+              if (!authorizedAgentId) {
+                const { data: approached } = await sb.from("agent_leads")
+                  .select("agent_id,created_at")
+                  .in("agent_id", agentIds)
+                  .eq("status", "abordado")
+                  .like("phone", `%${tail}`)
+                  .order("created_at", { ascending: false })
+                  .limit(1);
+                authorizedAgentId = (approached as any)?.[0]?.agent_id as string | undefined;
+              }
+              const a = agents.find((x) => x.id === authorizedAgentId);
+              if (!a) continue;
               if (a) {
                 const name = String(it["pushName"] ?? "");
                 // grava sempre a mensagem do cliente, mesmo com a IA desligada ou pausada
