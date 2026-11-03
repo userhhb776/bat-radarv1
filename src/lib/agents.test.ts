@@ -46,6 +46,20 @@ describe("B-T6X linear flow", () => {
     ], rules, {}, "Cliente");
     expect(result?.replies).toEqual(["Passo 2: envio do catálogo"]);
   });
+  it("allows semantic acceptance from the AI to advance a sequence without keyword matching", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Passo 1: apresentação" },
+      { role: "user", content: "Opa, boa noite. Pode sim!" },
+    ], rules, {}, "Cliente", true);
+    expect(result?.replies).toEqual(["Passo 2: envio do catálogo"]);
+  });
+  it("does not advance a sequence for a negative reply unless the classifier explicitly confirms acceptance", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Passo 1: apresentação" },
+      { role: "user", content: "Não tenho interesse" },
+    ], rules, {}, "Cliente");
+    expect(result?.replies).toEqual([]);
+  });
   it("seleciona regra de aceite configurada como alternativas após resposta positiva", () => {
     const acceptance = { when: "Quando o cliente aceita continuar", mode: "alternatives" as const, variants: ["Perfeito! Vou te mostrar como funciona.", "Boa! Posso te explicar os próximos passos."] };
     expect(matchPositiveBtxRule([acceptance])).toBe(acceptance);
