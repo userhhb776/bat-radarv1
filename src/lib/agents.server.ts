@@ -8,7 +8,7 @@ export type Agent = {
   active: boolean; auto_reply: boolean; training_mode: boolean; training_phone: string;
   context?: string; style?: string; pace?: string; script_steps?: Step[]; miner?: Miner; btx?: Btx; limp?: Limp;
 };
-export type BtxRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string };
+export type BtxRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence"; audio_id?: string; stop_after_send?: boolean };
 export type Btx = { prompt?: string; rules?: BtxRule[] };
 export type Limp = { enabled?: boolean; entries?: string[] };
 export type Step = { title: string; goal: string; message: string };
@@ -280,7 +280,7 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
     if (pick) fixed = [fillTemplate(pick, leadContext)];
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
-    if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false };
+    if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false, pauseAfterSend: !!matched.stop_after_send };
   }
   // Última alternativa: nenhuma situação cadastrada serviu; só agora usa o agente treinado.
   // O prompt acima mantém o B-T6X como prioridade e proíbe inventar preço/oferta/condições.
@@ -293,7 +293,7 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
       if (c.function.name === "responder_btx") {
         const r = rules[Number(c.function.arguments?.["situacao"]) - 1];
         if (r) { const pick = pickVariant(r.variants); if (pick) fixed = splitBubbles(fillTemplate(pick, { name: contactName })); if (r.audio_id && audios.some((x) => x.id === r.audio_id)) audioId = r.audio_id; }
-        if (fixed.length || audioId) return { replies: fixed, hot, reason, audioId };
+        if (fixed.length || audioId) return { replies: fixed, hot, reason, audioId, pauseAfterSend: !!r?.stop_after_send };
       } else if (c.function.name === "enviar_audio") { const id = String(c.function.arguments?.["audio_id"] ?? ""); if (audios.some((x) => x.id === id)) audioId = id; }
       else { hot = true; reason = String(c.function.arguments?.["motivo"] ?? ""); }
       convo.push({ role: "tool", tool_name: c.function.name, content: "{\"ok\":true}" });
@@ -601,9 +601,11 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
     return { ...r, skipped: "md-teste" };
   }
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
+  let configuredResponseSent = false;
   if (r.replies.length) {
     const outgoing = r.replies.map((b) => adaptGreeting(b));
     await evoSend(instance, phone, outgoing, () => conversationGapMs());
+    configuredResponseSent = true;
     for (const b of outgoing) await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: b, hot: r.hot });
   }
   if ((r as any).stop) {
@@ -613,8 +615,13 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
     const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", r.audioId).single();
     if (au) {
       await evoSendAudio(instance, phone, (au as any).data, 3000 + Math.random() * 5000);
+      configuredResponseSent = true;
       await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: `🎤 [áudio: ${(au as any).title}]`, hot: r.hot });
     }
+  }
+  if ((r as any).pauseAfterSend && configuredResponseSent) {
+    await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
+    await logEvent(sb, a, "transferencia_manual", `Atendimento de ${name || phone} transferido para controle manual pelo B-T6X.`);
   }
   await logEvent(sb, a, "resposta", `Respondeu ${name || phone}${r.audioId ? " com áudio" : ""}`);
   if (r.hot) await sb.from("agent_leads").update({ status: "quente" }).eq("agent_id", a.id).like("phone", `%${phone.slice(-8)}%`);
