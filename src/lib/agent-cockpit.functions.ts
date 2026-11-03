@@ -230,14 +230,13 @@ export const startTestV2 = createServerFn({ method: "POST" })
     if (!admin) throw new Error("Teste V2 é exclusivo do administrador.");
     const a = await loadAgent(context.supabase, data.id);
     if (!a.instance) throw new Error("Escolha o número do agente primeiro.");
-    const { openingFor, fillTemplate, adaptGreeting } = await import("@/lib/agents.server");
-    const msg = openingFor({ ...a, miner: { ...(a.miner ?? {}), btx_opening: true } } as any) || openingFor(a);
-    if (!msg) throw new Error("Configure uma mensagem de abordagem antes.");
+    const { openingMessagesFor, fillTemplate, adaptGreeting, openGapMs } = await import("@/lib/agents.server");
+    const blocks = openingMessagesFor({ ...a, miner: { ...(a.miner ?? {}), btx_opening: true } } as any);
+    if (!blocks.length) throw new Error("Configure uma mensagem de abordagem antes.");
     const phone = "5568992316302";
     await (context.supabase as any).from("agents").update({ active: true, training_mode: true, training_phone: phone, miner: { ...(a.miner ?? {}), md_teste: false } }).eq("id", a.id);
     const { evoSend } = await import("@/lib/evolution.server");
-    const { splitBubbles, openGapMs } = await import("@/lib/agents.server");
-    const texts = splitBubbles(fillTemplate(msg, { name: "Empresa Teste", city: "Rio Branco" } as any)).map((x) => adaptGreeting(x));
+    const texts = blocks.map((block) => adaptGreeting(fillTemplate(block, { name: "Empresa Teste", city: "Rio Branco" } as any)));
     await evoSend(a.instance, phone, texts, openGapMs(a));
     for (const b of texts) await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: b });
     return { ok: true };
