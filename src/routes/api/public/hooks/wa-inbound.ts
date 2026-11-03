@@ -87,8 +87,11 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 const { humanReply } = await import("@/lib/agents.server");
                 // teste: nunca fica pausado no seu número e responde rápido (evita estourar o tempo do webhook)
                 await (sb as any).from("agent_pauses").delete().eq("agent_id", trainer.id).eq("phone", phone);
-                const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000) }).select("id").single();
-                await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any)?.id ?? "");
+                const providerMessageId = String(k["id"] ?? "").trim() || null;
+                const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000), provider_message_id: providerMessageId }).select("id").maybeSingle();
+                // A Evolution pode reenviar o mesmo messages.upsert. Só a primeira entrega pode disparar a IA.
+                if (!(inb as any)?.id) continue;
+                await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any).id);
                 continue;
               }
               // escolhe o agente que já conversa com esse contato (tolerante ao 9º dígito)
@@ -98,10 +101,13 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               if (a) {
                 const name = String(it["pushName"] ?? "");
                 // grava sempre a mensagem do cliente, mesmo com a IA desligada ou pausada
-                const { data: inb } = await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "in", body: text.slice(0, 4000) }).select("id").single();
+                const providerMessageId = String(k["id"] ?? "").trim() || null;
+                const { data: inb } = await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "in", body: text.slice(0, 4000), provider_message_id: providerMessageId }).select("id").maybeSingle();
+                // Idempotência: webhooks repetidos com o mesmo ID não criam novas respostas.
+                if (!(inb as any)?.id) continue;
                 if (!a.auto_reply) continue;
                 const { humanReply } = await import("@/lib/agents.server");
-                const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any)?.id ?? "");
+                const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any).id);
                 if (r.skipped) continue;
                 if (r.hot) {
                   await notifyUser(supabaseAdmin, a.user_id, `🔥 ${a.name}: cliente quente`, `${name || phone}: ${r.reason || "quer avançar"}`, "/agentes").catch(() => 0);
