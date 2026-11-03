@@ -249,8 +249,8 @@ function canonicalScriptText(value: string) {
   return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
 }
 function numberedRule(rule: BtxRule) {
-  const match = /^(.*?)(?:\\s*[-–—:]?\\s*)(?:mensagem|passo)\\s*(\\d+)\\s*$/i.exec(rule.when.trim());
-  return match ? { key: match[1]!.trim().toLowerCase().replace(/\\s+/g, " "), order: Number(match[2]) } : null;
+  const match = /^(.?)(?:\s[-–—:]?\s)(?:mensagem|passo)\s(\d+)\s*$/i.exec(rule.when.trim());
+  return match ? { key: match[1]!.trim().toLowerCase().replace(/\s+/g, " "), order: Number(match[2]) } : null;
 }
 function numberedRuleGroups(rules: BtxRule[]) {
   const groups = new Map<string, Array<{ rule: BtxRule; order: number }>>();
@@ -276,30 +276,37 @@ export function openingMessagesFor(a: Agent) {
 export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string) {
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   const inbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
-  if (!isPositiveReply(inbound)) return null;
   const numbered = numberedRuleGroups(rules).filter((g) => /aceit|interess|proposta|continua|avanc|pode enviar|quer receber/.test(g.key));
   for (const group of numbered) {
     const rendered = group.items.map(({ rule }) => fillTemplate(rule.variants.find((v) => v.trim()) ?? "", { ...lead, name: lead.name || contactName }));
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index >= 0) {
+      if (!isPositiveReply(inbound)) return { replies: [] as string[], stop: false };
       const next = rendered[index + 1];
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
     }
     if (!lastOut || !rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut))) {
-      return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
+      if (isPositiveReply(inbound)) {
+        return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
+      }
     }
   }
   for (const rule of rules.filter((r) => r.mode === "sequence" && r.variants?.some((v) => v.trim()))) {
     const rendered = rule.variants.map((v) => fillTemplate(v, { ...lead, name: lead.name || contactName }));
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index >= 0) {
+      if (!isPositiveReply(inbound)) return { replies: [] as string[], stop: false };
       const next = rendered[index + 1];
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
+    }
+    if (!lastOut || !rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut))) {
+      if (isPositiveReply(inbound)) {
+        return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
+      }
     }
   }
   return null;
 }
-
 export function matchBtxRule(message: string, rules: BtxRule[]) {
   const incoming = new Set(btxTerms(message));
   if (!incoming.size) return null;
