@@ -433,7 +433,7 @@ export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
  * de conversa; assim, mensagens consecutivas nunca aparecem como variações.
  */
 export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>): Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> {
-  const normalized: T[] = [];
+  const normalized: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> = [];
   for (const rule of rules) {
     const variants = (rule.variants ?? []).map((v) => v.trim()).filter(Boolean);
     if (!variants.length) continue;
