@@ -249,19 +249,20 @@ function canonicalScriptText(value: string) {
   return value.replace(/\b(bom dia|boa tarde|boa noite)\b/gi, "__SAUDACAO__").replace(/\s+/g, " ").trim().toLowerCase();
 }
 function numberedRule(rule: BtxRule) {
-  const match = /^(.*?)(?:\s*[-–—:]?\s*)(?:mensagem|passo)\s*(\d+)\s*$/i.exec(rule.when.trim());
-  return match ? { key: match[1]!.trim().toLowerCase().replace(/\s+/g, " "), order: Number(match[2]) } : null;
+  const match = /^(.*?)(?:\s*[-–—:]?\s*)(mensagem|passo)\s*(\d+)\s*$/i.exec(rule.when.trim());
+  return match ? { key: match[1]!.trim().toLowerCase().replace(/\s+/g, " "), type: match[2]!.toLowerCase() as "mensagem" | "passo", order: Number(match[3]) } : null;
 }
 function numberedRuleGroups(rules: BtxRule[]) {
-  const groups = new Map<string, Array<{ rule: BtxRule; order: number }>>();
+  const groups = new Map<string, { key: string; type: "mensagem" | "passo"; items: Array<{ rule: BtxRule; order: number }> }>();
   for (const rule of rules) {
     const parsed = numberedRule(rule);
     if (!parsed) continue;
-    const group = groups.get(parsed.key) ?? [];
-    group.push({ rule, order: parsed.order });
+    const group = groups.get(parsed.key) ?? { key: parsed.key, type: parsed.type, items: [] };
+    group.items.push({ rule, order: parsed.order });
+    if (parsed.type === "passo") group.type = "passo";
     groups.set(parsed.key, group);
   }
-  return [...groups.entries()].map(([key, items]) => ({ key, items: items.sort((a, b) => a.order - b.order) }));
+  return [...groups.values()].map((g) => ({ ...g, items: g.items.sort((a, b) => a.order - b.order) }));
 }
 export function openingMessagesFor(a: Agent) {
   if (a.miner?.btx_opening) {
@@ -279,6 +280,13 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
   const numbered = numberedRuleGroups(rules).filter((g) => /aceit|interess|proposta|continua|avanc|pode enviar|quer receber/.test(g.key));
   for (const group of numbered) {
     const rendered = group.items.map(({ rule }) => fillTemplate(rule.variants.find((v) => v.trim()) ?? "", { ...lead, name: lead.name || contactName }));
+    if (group.type === "mensagem") {
+      const alreadySent = rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
+      if (!alreadySent && isPositiveReply(inbound)) {
+        return { replies: rendered, stop: false };
+      }
+      continue;
+    }
     const index = rendered.findIndex((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
     if (index >= 0) {
       if (!isPositiveReply(inbound)) return { replies: [] as string[], stop: false };
@@ -342,12 +350,17 @@ export function splitBubbles(t: string) {
   return t.trim().split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean).slice(0, 3);
 }
 
-/** Tempo entre os balões da abordagem inicial (segundos configurados no agente); undefined = padrão. */
+/** Tempo entre os balões da abordagem inicial (12 a 18s por padrão se não configurado). */
 export function openGapMs(a: { miner?: any }) {
-  const lo = Number(a.miner?.open_gap_min), hi = Number(a.miner?.open_gap_max);
-  if (!lo) return undefined;
-  const top = Math.max(lo, hi || lo);
+  const lo = Number(a.miner?.open_gap_min) || 12;
+  const hi = Number(a.miner?.open_gap_max) || 18;
+  const top = Math.max(lo, hi);
   return () => (lo + Math.random() * (top - lo)) * 1000;
+}
+
+/** Tempo entre balões enviados em sequência durante uma conversa (3.5 a 7 segundos). */
+export function conversationGapMs(rnd = Math.random()) {
+  return Math.round((3500 + rnd * 3500));
 }
 
 export const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
@@ -373,7 +386,7 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   const { evoSend, evoSendAudio } = await import("@/lib/evolution.server");
   if (r.replies.length) {
     const outgoing = r.replies.map((b) => adaptGreeting(b));
-    await evoSend(instance, phone, outgoing);
+    await evoSend(instance, phone, outgoing, () => conversationGapMs());
     for (const b of outgoing) await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: b, hot: r.hot });
   }
   if ((r as any).stop) {
