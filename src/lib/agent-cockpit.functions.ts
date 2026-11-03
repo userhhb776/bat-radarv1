@@ -231,7 +231,7 @@ ${ref || "nenhum"}
 
 INSTRUÇÕES DO DONO:
 ${data.prompt}`);
-    const m = out.match(/\\{[\\s\\S]*\\}/);
+    const m = out.match(/\{[\s\S]*\}/);
     const parsed = btxSchema.shape.rules.safeParse(m ? JSON.parse(m[0]).rules : null);
     if (!parsed.success) throw new Error("A IA não devolveu um plano válido. Tente de novo.");
     const { normalizeGeneratedBtxRules } = await import("@/lib/agents.server");
