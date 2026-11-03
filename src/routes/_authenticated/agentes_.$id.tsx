@@ -397,7 +397,7 @@ function Talk({ id, name }: { id: string; name: string }) {
 function F({ label, children }: { label: string; children: React.ReactNode }) { return <div className="space-y-1"><Label>{label}</Label>{children}</div>; }
 function Row({ label, v, on }: { label: string; v: boolean; on: (v: boolean) => void }) { return <div className="flex items-center justify-between gap-2"><Label>{label}</Label><Switch checked={v} onCheckedChange={on} /></div>; }
 
-type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence" | undefined; audio_id?: string | undefined };
+type BRule = { when: string; variants: string[]; mode?: "alternatives" | "sequence" | undefined; audio_id?: string | undefined; stop_after_send?: boolean | undefined };
 function normalizeBtxLabels(rules: BRule[]) {
   const groups = new Map<string, { label: string; type: "mensagem" | "passo"; rows: Array<{ index: number; order: number }> }>();
   rules.forEach((rule, index) => {
@@ -468,6 +468,7 @@ function Btx({ id, a, audios }: { id: string; a: any; audios: any[] }) {
             <Button size="icon" variant="ghost" onClick={() => setRules(rules.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
           </div>
           <div className="flex flex-wrap items-center gap-2"><Label className="text-xs">Tipo de resposta</Label><select className="rounded-md border bg-background px-2 py-1 text-sm" value={r.mode ?? "alternatives"} onChange={(e) => setRule(i, { mode: (e.target.value as "alternatives" | "sequence") || undefined })}><option value="alternatives">Alternativas (sortear)</option><option value="sequence">Sequência linear (em ordem)</option></select></div>
+          <div className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-2"><Label className="text-xs">Após enviar, passar este lead para atendimento manual</Label><Switch checked={!!r.stop_after_send} onCheckedChange={(v) => setRule(i, { stop_after_send: v })} /></div>
           {r.variants.map((v, k) => (
             <div key={k} className="flex items-start gap-1">
               <Textarea rows={2} value={v} onChange={(e) => setVar(i, k, e.target.value)} placeholder={r.mode === "sequence" ? `Passo ${k + 1}` : `Variação ${k + 1}`} />
