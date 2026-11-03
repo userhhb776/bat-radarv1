@@ -442,7 +442,7 @@ export function normalizeGeneratedBtxRules<T extends { when: string; mode?: "alt
       continue;
     }
     const opening = /abord|inic|primeir|abertura/i.test(rule.when);
-    const base = rule.when.replace(/\\s*[-–—:]?\\s*(mensagem|passo)\\s*\\d+\\s*$/i, "").trim();
+    const base = rule.when.replace(/\s*[-–—:]?\s*(mensagem|passo)\s*\d+\s*$/i, "").trim();
     variants.forEach((message, index) => {
       normalized.push({
         ...rule,
