@@ -260,17 +260,20 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   const leadContext = { name: companyName || contactName, city: companyCity, niche: companyNiche };
   // Ollama interpreta o contexto e escolhe uma situação existente do B-T6X.
   // Em caso de falha/baixa confiança, o mecanismo local permanece como fallback.
+  // Situações explícitas e inequívocas no texto do cliente têm prioridade sobre a classificação da IA.
+  // Isso evita que "já temos uma equipe" seja confundido com outra objeção ou etapa do funil.
+  const explicitMatch = matchExistingTeamRule(latestInbound, rules) ?? matchBtxRule(latestInbound, rules);
   const decision = await interpretBtxIntent(a, fallbackKey, hist, rules);
   const trustedDecision = decision && decision.confidence >= 0.62 ? decision : null;
   const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept");
   if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: "" };
-  let matched: BtxRule | null = null;
-  if (trustedDecision) {
+  let matched: BtxRule | null = explicitMatch;
+  if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
     if (!matched && trustedDecision.intent === "reject") return { replies: [], hot: false, reason: "", audioId: "", stop: true };
     if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
-  } else {
-    matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
+  } else if (!matched) {
+    matched = isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null;
   }
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
@@ -411,6 +414,19 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
   }
   return null;
 }
+/** Reconhece a objeção "já temos equipe/agência" sem depender da decisão probabilística do modelo. */
+export function matchExistingTeamRule(message: string, rules: BtxRule[]) {
+  const normalized = message.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  const alreadyHasTeam = /\\b(ja temos|ja tem|temos uma|tem uma|ja trabalho com|trabalhamos com|ja contamos com|temos alguem|tem alguem|ja possuimos)\\b/.test(normalized)
+    && /\\b(equipe|agencia|profissional|time|pessoa|empresa|pessoal|marketing)\\b/.test(normalized);
+  if (!alreadyHasTeam) return null;
+  return rules.find((rule) => {
+    const label = rule.when.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+    return /equipe|agencia|profissional|time|ja tem alguem|ja trabalha com|ja possui/.test(label)
+      && rule.variants?.some((variant) => variant.trim());
+  }) ?? null;
+}
+
 export function matchBtxRule(message: string, rules: BtxRule[]) {
   const incoming = new Set(btxTerms(message));
   if (!incoming.size) return null;
