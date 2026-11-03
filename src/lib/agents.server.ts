@@ -474,8 +474,8 @@ export function normalizeBtxRuleNumbering<T extends { when: string }>(rules: T[]
   return result;
 }
 
-export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }>): Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> {
-  const normalized: Array<{ when: string; mode?: "alternatives" | "sequence"; variants: string[]; audio_id?: string }> = [];
+export function normalizeGeneratedBtxRules(rules: Array<{ when: string; mode?: "alternatives" | "sequence" | undefined; variants: string[]; audio_id?: string | undefined }>): Array<{ when: string; mode?: "alternatives" | "sequence" | undefined; variants: string[]; audio_id?: string | undefined }> {
+  const normalized: Array<{ when: string; mode?: "alternatives" | "sequence" | undefined; variants: string[]; audio_id?: string | undefined }> = [];
   for (const rule of rules) {
     const variants = (rule.variants ?? []).map((v) => v.trim()).filter(Boolean);
     if (!variants.length) continue;
