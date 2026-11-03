@@ -101,22 +101,22 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               if (tail.length < 6) continue;
               const agentIds = agents.map((x) => x.id);
               const { data: outbound } = await sb.from("agent_messages")
-                .select("agent_id,created_at")
+                .select("agent_id,phone,created_at")
                 .in("agent_id", agentIds)
                 .eq("direction", "out")
                 .like("phone", `%${tail}`)
                 .order("created_at", { ascending: false })
-                .limit(1);
-              let authorizedAgentId = (outbound as any)?.[0]?.agent_id as string | undefined;
+                .limit(30);
+              let authorizedAgentId = (outbound ?? []).find((m: any) => samePhone(String(m.phone ?? ""), phone))?.agent_id as string | undefined;
               if (!authorizedAgentId) {
                 const { data: approached } = await sb.from("agent_leads")
-                  .select("agent_id,created_at")
+                  .select("agent_id,phone,created_at")
                   .in("agent_id", agentIds)
                   .eq("status", "abordado")
                   .like("phone", `%${tail}`)
                   .order("created_at", { ascending: false })
-                  .limit(1);
-                authorizedAgentId = (approached as any)?.[0]?.agent_id as string | undefined;
+                  .limit(30);
+                authorizedAgentId = (approached ?? []).find((lead: any) => samePhone(String(lead.phone ?? ""), phone))?.agent_id as string | undefined;
               }
               const a = agents.find((x) => x.id === authorizedAgentId);
               if (!a) continue;
