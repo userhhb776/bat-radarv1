@@ -130,7 +130,15 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 const { humanReply } = await import("@/lib/agents.server");
                 const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any).id);
                 if (r.skipped) continue;
-                if (r.hot) {
+                if (r.hot && !r.replies?.length) {
+                  await notifyUser(
+                    supabaseAdmin,
+                    a.user_id,
+                    `⚠️ ${a.name}: Assuma o controle`,
+                    `${name || phone} disse: "${text.slice(0, 100)}". Nenhuma situação B-T6X cadastrada.`,
+                    "/agentes"
+                  ).catch(() => 0);
+                } else if (r.hot) {
                   await notifyUser(supabaseAdmin, a.user_id, `🔥 ${a.name}: cliente quente`, `${name || phone}: ${r.reason || "quer avançar"}`, "/agentes").catch(() => 0);
                   if (a.training_phone && !match(a.training_phone) && !samePhone(phone, a.training_phone)) await evoSend(instance, a.training_phone, [`🔥 ${name || phone} (${phone}) está quente: ${r.reason}`]).catch(() => 0);
                 }
