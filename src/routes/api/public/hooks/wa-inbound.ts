@@ -129,6 +129,16 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 if (!a.auto_reply) continue;
                 const { humanReply } = await import("@/lib/agents.server");
                 const r: any = await humanReply(sb, a as any, key, instance, phone, name, (inb as any).id);
+                if (r.skipped === "fora_da_janela_15_min") {
+                  await notifyUser(
+                    supabaseAdmin,
+                    a.user_id,
+                    `⚠️ ${a.name}: Assuma o controle`,
+                    `${name || phone} respondeu após mais de 15 min: "${text.slice(0, 100)}". Transferido para atendimento manual.`,
+                    "/agentes"
+                  ).catch(() => 0);
+                  continue;
+                }
                 if (r.skipped) continue;
                 if (r.hot && !r.replies?.length) {
                   await notifyUser(
