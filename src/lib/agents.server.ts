@@ -287,18 +287,9 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false, pauseAfterSend: !!matched.stop_after_send };
   }
-  // Com B-T6X cadastrado, ausência de correspondência é um bloqueio: nunca improvisar via LLM.
-  if (rules.length > 0) {
-    return {
-      replies: [] as string[],
-      hot: true,
-      reason: `Objeção não prevista no B-T6X: "${latestInbound.slice(0, 120)}"`,
-      audioId: "",
-      stop: true,
-      pauseAfterSend: true,
-    };
-  }
-  // Última alternativa legada: sem B-T6X, o agente treinado pode responder.
+  // Se nenhuma situação B-T6X corresponder, usa o fallback contextual descrito no prompt.
+  // Isso permite responder perguntas legítimas que não têm cartão próprio, sem inventar
+  // preços, prazos ou promessas. Não pausar automaticamente o contato por falta de regra.
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
@@ -631,7 +622,14 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   await sleep(paceDelayMs(a.pace));
   const { data: last } = await sb.from("agent_messages").select("id,direction,manual").eq("agent_id", a.id).eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (last && (last as any).id !== inboundId) return { skipped: "nova mensagem ou dono respondeu" };
-  const r = await agentClientReply(sb, a, key, phone, name);
+  let r: Awaited<ReturnType<typeof agentClientReply>>;
+  try {
+    r = await agentClientReply(sb, a, key, phone, name);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Falha desconhecida ao gerar resposta.";
+    await logEvent(sb, a, "erro", `Não foi possível gerar resposta para ${name || phone}: ${detail}`);
+    return { skipped: "erro_geracao", error: detail };
+  }
   if (a.miner?.md_teste) {
     await logEvent(sb, a, "teste", `[md-teste] responderia ${name || phone}: "${r.replies.join(" / ").slice(0, 220)}"${r.audioId ? " + áudio" : ""}`);
     return { ...r, skipped: "md-teste" };
