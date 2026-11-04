@@ -184,3 +184,24 @@ describe("B-T6X duplicate numbering", () => {
     ]);
   });
 });
+
+
+describe("B-T6X sequence opening guard", () => {
+  const rules = [{ when: "Cliente aceita continuar — Passo 1", mode: "sequence" as const, variants: ["Primeiro passo"] }];
+  it("does not start an acceptance sequence after a non-opening objection response", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Abordagem inicial" },
+      { role: "user", content: "Quanto custa?" },
+      { role: "assistant", content: "O valor depende do projeto." },
+      { role: "user", content: "Sim" },
+    ], rules, {}, "Cliente", true, ["Abordagem inicial"]);
+    expect(result).toBeNull();
+  });
+  it("starts an acceptance sequence when the last assistant message is the configured opening", () => {
+    const result = sequenceReply([
+      { role: "assistant", content: "Abordagem inicial" },
+      { role: "user", content: "Sim" },
+    ], rules, {}, "Cliente", true, ["Abordagem inicial"]);
+    expect(result?.replies).toEqual(["Primeiro passo"]);
+  });
+});
