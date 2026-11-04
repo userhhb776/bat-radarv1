@@ -273,8 +273,9 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
-    // Uma confirmação explícita ("pode sim, como funcionaria?") deve prevalecer
-    // sobre uma classificação genérica de pergunta sem regra selecionada.
+    // Se o classificador não apontar uma regra válida, tenta primeiro a correspondência
+    // local com as situações configuradas; só depois considera o aceite genérico.
+    if (!matched) matched = matchBtxRule(latestInbound, rules);
     if (!matched) matched = matchPositiveReplyRule(latestInbound, rules);
     if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
   } else if (!matched) {
@@ -317,13 +318,14 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   return { replies: [] as string[], hot, reason, audioId };
 }
 
-const BTX_STOP = new Set(["quando","cliente","pergunta","perguntar","fala","disser","dizer","responde","responder","sobre","para","com","uma","um","que","qual","como","voce","voces","ele","ela","isso","esta","estou","estao","tem","ter","ser","sou","do","da","de","dos","das","no","na","nos","nas","e","ou"]);
+const BTX_STOP = new Set(["quando","cliente","pergunta","perguntar","fala","disser","dizer","responde","responder","sobre","para","com","uma","um","que","qual","como","quer","saber","passo","voce","voces","ele","ela","isso","esta","estou","estao","tem","ter","ser","sou","do","da","de","dos","das","no","na","nos","nas","e","ou"]);
 function btxTerms(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
     .filter((word) => (word.length > 2 || word === "ia" || word === "ai") && !BTX_STOP.has(word));
 }
 const BTX_SYNONYMS = [
+  ["funciona","funcionaria","funcionar","funcionamento","funcionam","funcionou"],
   ["preco","valor","custa","custaria","orcamento","pagamento"],
   ["ia","robo","bot","inteligencia","artificial","assistente"],
   ["site","website","pagina","catalogo","loja","virtual"],
