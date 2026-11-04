@@ -6,7 +6,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { inboundToken, samePhone } = await import("@/lib/wa-inbound.server");
+        const { inboundToken, samePhone, isFromMeFlag } = await import("@/lib/wa-inbound.server");
         const t = new URL(request.url).searchParams.get("t") ?? "";
         if (!t || t !== inboundToken()) return new Response("denied", { status: 401 });
         const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
         const since = new Date(Date.now() - 30 * 86400000).toISOString();
         for (const it of items) {
           const k = (it?.["key"] ?? {}) as Record<string, unknown>;
-          const fromMe = !!k["fromMe"];
+          const fromMe = isFromMeFlag(k["fromMe"]);
           const jids = [k["remoteJid"], k["remoteJidAlt"], k["senderPn"], k["participantAlt"]].map((j) => String(j ?? ""));
           if (jids.some((j) => j.endsWith("@g.us") || j.includes("broadcast"))) continue;
           const phones = jids.filter((j) => j.endsWith("@s.whatsapp.net")).map((j) => j.split("@")[0]!);
