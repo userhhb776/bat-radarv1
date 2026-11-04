@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, normalizeBtxRuleNumbering, matchPositiveBtxRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor, matchLimpMessage } from "./agents.server";
+import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, normalizeBtxRuleNumbering, matchPositiveBtxRule, matchPositiveReplyRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor, matchLimpMessage } from "./agents.server";
 
 describe("agentes", () => {
   it("ritmo normal espera entre 15 e 40 segundos", () => {
@@ -70,6 +70,14 @@ describe("B-T6X linear flow", () => {
       { role: "user", content: "Não tenho interesse" },
     ], rules, {}, "Cliente");
     expect(result).toBeNull();
+  });
+  it("seleciona a regra de aceite quando a confirmação vem junto de uma pergunta", () => {
+    const acceptance = { when: "Cliente aceita receber a apresentação", mode: "alternatives" as const, variants: ["Perfeito! Vou te explicar como funciona."] };
+    expect(matchPositiveReplyRule("Boa tarde Lucas. Pode sim, como funcionaria?", [acceptance])).toBe(acceptance);
+  });
+  it("não força uma regra de aceite quando a mensagem não confirma", () => {
+    const acceptance = { when: "Cliente aceita receber a apresentação", variants: ["Perfeito!"] };
+    expect(matchPositiveReplyRule("Como funcionaria?", [acceptance])).toBeNull();
   });
   it("seleciona regra de aceite configurada como alternativas após resposta positiva", () => {
     const acceptance = { when: "Quando o cliente aceita continuar", mode: "alternatives" as const, variants: ["Perfeito! Vou te mostrar como funciona.", "Boa! Posso te explicar os próximos passos."] };
