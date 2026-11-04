@@ -38,6 +38,16 @@ describe("prioridade do B-T6X", () => {
   });
 });
 
+describe("B-T6X question matching", () => {
+  it("matches the configured how-it-works rule after a yes", () => {
+    const rules = [
+      { when: "Cliente demonstra interesse e quer saber mais diz que sim — Passo 1", variants: [], audio_id: "accept-audio" },
+      { when: "Cliente quer saber como funciona — Passo 1", variants: ["Resposta configurada sobre funcionamento"] },
+    ];
+    expect(matchBtxRule("Pode sim, como funcionaria?", rules)?.variants[0]).toBe("Resposta configurada sobre funcionamento");
+  });
+});
+
 describe("B-T6X explicit team objection", () => {
   it("prioritizes the configured existing-team response for natural Portuguese wording", () => {
     const teamRule = { when: "Já tem equipe / agência / profissional", variants: ["Tudo bem! Obrigado pelo retorno."] };
