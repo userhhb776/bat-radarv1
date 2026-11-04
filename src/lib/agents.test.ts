@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { isFromMeFlag } from "./wa-inbound.server";
 import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, normalizeBtxRuleNumbering, matchPositiveBtxRule, matchPositiveReplyRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor, matchLimpMessage } from "./agents.server";
 
 describe("agentes", () => {
@@ -211,5 +212,19 @@ describe("B-T6X sequence opening guard", () => {
       { role: "user", content: "Sim" },
     ], rules, {}, "Cliente", true, ["Abordagem inicial"]);
     expect(result?.replies).toEqual(["Primeiro passo"]);
+  });
+});
+
+
+describe("Evolution fromMe flag", () => {
+  it("does not mistake the string false for an outbound message", () => {
+    expect(isFromMeFlag(false)).toBe(false);
+    expect(isFromMeFlag("false")).toBe(false);
+    expect(isFromMeFlag("0")).toBe(false);
+  });
+  it("recognizes true boolean and string values", () => {
+    expect(isFromMeFlag(true)).toBe(true);
+    expect(isFromMeFlag("true")).toBe(true);
+    expect(isFromMeFlag(1)).toBe(true);
   });
 });
