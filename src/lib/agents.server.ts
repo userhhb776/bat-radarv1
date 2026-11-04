@@ -267,7 +267,7 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   const decision = await interpretBtxIntent(a, fallbackKey, hist, rules);
   const trustedDecision = decision && decision.confidence >= 0.62 ? decision : null;
   const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept");
-  if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: "" };
+  if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: (sequence as any).audioId && audios.some((x) => x.id === (sequence as any).audioId) ? (sequence as any).audioId : "" };
   let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
@@ -399,7 +399,8 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
     if (group.type === "mensagem") {
       const alreadySent = rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut));
       if (!alreadySent && accepted) {
-        return { replies: rendered, stop: false };
+        const aud = group.items.map(({ rule }) => rule.audio_id).find(Boolean) ?? "";
+        return { replies: rendered, stop: false, audioId: aud, pauseAfterSend: group.items.some(({ rule }) => !!rule.stop_after_send) };
       }
       continue;
     }
@@ -613,11 +614,11 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
   }
   if (r.audioId) {
     const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", r.audioId).single();
-    if (au) {
+    if (au) try {
       await evoSendAudio(instance, phone, (au as any).data, 3000 + Math.random() * 5000);
       configuredResponseSent = true;
       await sb.from("agent_messages").insert({ user_id: a.user_id, agent_id: a.id, phone, contact_name: name, direction: "out", body: `🎤 [áudio: ${(au as any).title}]`, hot: r.hot });
-    }
+    } catch (e) { console.error("audio send", e); await logEvent(sb, a, "erro", `Falha ao enviar áudio: ${(e as Error).message}`.slice(0, 200)); }
   }
   if ((r as any).pauseAfterSend && configuredResponseSent) {
     await sb.from("agent_pauses").upsert({ user_id: a.user_id, agent_id: a.id, phone });
