@@ -25,6 +25,13 @@ export async function registerInbound(instance: string) {
 }
 
 /** Compara telefones tolerando o 9º dígito e formatos diferentes. */
+/** Normaliza o campo fromMe da Evolution sem tratar a string "false" como true. */
+export function isFromMeFlag(value: unknown) {
+  if (value === true || value === 1) return true;
+  if (typeof value === "string") return ["true", "1"].includes(value.trim().toLowerCase());
+  return false;
+}
+
 export function samePhone(a: string, b: string) {
   // reduz para DDD + 8 dígitos (sem 55 e sem o 9º dígito)
   const d = (s: string) => {
