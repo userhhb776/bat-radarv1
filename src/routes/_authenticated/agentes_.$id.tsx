@@ -333,7 +333,7 @@ function Audios({ id, audios }: { id: string; audios: any[] }) {
       </div>
       {audios.map((x) => (
         <div key={x.id} className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2 text-sm">
-          <div><div className="font-medium">🎤 {x.title}</div><div className="text-xs text-muted-foreground">{x.trigger || "sem gatilho"}</div></div>
+          <div><div className="font-medium">🎤 {x.title}</div><div className="text-xs text-muted-foreground">{x.trigger || "sem gatilho"}</div>{x.data && <audio controls preload="none" className="mt-1 h-8 max-w-full" src={String(x.data).startsWith("data:") ? x.data : `data:${x.mime || "audio/ogg"};base64,${x.data}`} />}</div>
           <Button size="icon" variant="ghost" onClick={async () => { await del({ data: { id: x.id } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); }}><Trash2 className="h-4 w-4" /></Button>
         </div>
       ))}

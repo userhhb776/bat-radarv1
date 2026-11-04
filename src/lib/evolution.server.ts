@@ -62,6 +62,7 @@ export async function evoSendAudio(instance: string, phone: string, base64: stri
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   const number = normalizeBR(phone);
   if (!number) throw new Error("Telefone inválido.");
+  base64 = base64.replace(/^data:[^,]*,/, "").replace(/\s/g, "");
   const res = await fetch(`${base}/message/sendWhatsAppAudio/${encodeURIComponent(instance)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: key },
