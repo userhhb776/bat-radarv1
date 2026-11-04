@@ -91,7 +91,16 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000), provider_message_id: providerMessageId }).select("id").maybeSingle();
                 // A Evolution pode reenviar o mesmo messages.upsert. Só a primeira entrega pode disparar a IA.
                 if (!(inb as any)?.id) continue;
-                await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any).id);
+                const r: any = await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any).id);
+                if (r?.hot && !r?.replies?.length) {
+                  await notifyUser(
+                    supabaseAdmin,
+                    trainer.user_id,
+                    `⚠️ ${trainer.name}: Assuma o controle`,
+                    `Simulação disse: "${text.slice(0, 100)}". Nenhuma situação B-T6X cadastrada.`,
+                    "/agentes"
+                  ).catch(() => 0);
+                }
                 continue;
               }
               // Segurança: só responde a contatos que este agente realmente abordou.
