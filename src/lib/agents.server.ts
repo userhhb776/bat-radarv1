@@ -128,14 +128,14 @@ confidence deve refletir sua certeza entre 0 e 1. Retorne somente o objeto no fo
     const payload = await response.json() as { message?: { content?: string } };
     const parsed = JSON.parse(payload.message?.content ?? "") as Partial<BtxDecision>;
     const intents: BtxIntent[] = ["accept", "interest", "price", "human_request", "objection", "question", "reject", "closing", "other", "unclear"];
-    if (!intents.includes(parsed.intent as BtxIntent)) return null;
+    const resolvedIntent: BtxIntent = intents.includes(parsed.intent as BtxIntent) ? (parsed.intent as BtxIntent) : "objection";
     const confidence = Number(parsed.confidence);
     if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
     const index = parsed.rule_index;
     const targetRule = rules[Number(index) - 1];
     const targetHasAction = targetRule && (targetRule.variants?.some((v) => v.trim()) || !!targetRule.audio_id);
     if (index !== null && (!Number.isInteger(index) || Number(index) < 1 || Number(index) > rules.length || !targetHasAction)) return null;
-    return { intent: parsed.intent as BtxIntent, rule_index: index as number | null, confidence, notify_owner: parsed.notify_owner === true, stop: parsed.stop === true };
+    return { intent: resolvedIntent, rule_index: index as number | null, confidence, notify_owner: parsed.notify_owner === true, stop: parsed.stop === true };
   } catch {
     return null;
   }
