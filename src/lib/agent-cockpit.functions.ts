@@ -267,6 +267,8 @@ export const startTestV2 = createServerFn({ method: "POST" })
     const blocks = openingMessagesFor({ ...a, miner: { ...(a.miner ?? {}), btx_opening: true } } as any);
     if (!blocks.length) throw new Error("Configure uma mensagem de abordagem antes.");
     const phone = "5568992316302";
+    const tail = phone.replace(/\\D/g, "").slice(-8);
+    await (context.supabase as any).from("agent_pauses").delete().eq("agent_id", a.id).like("phone", `%${tail}`);
     await (context.supabase as any).from("agents").update({ active: true, training_mode: true, training_phone: phone, miner: { ...(a.miner ?? {}), md_teste: false } }).eq("id", a.id);
     const { evoSend } = await import("@/lib/evolution.server");
     const texts = blocks.map((block) => adaptGreeting(fillTemplate(block, { name: "Empresa Teste", city: "Rio Branco" } as any)));
