@@ -273,9 +273,13 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
+    // Uma confirmação explícita ("pode sim, como funcionaria?") deve prevalecer
+    // sobre uma classificação genérica de pergunta sem regra selecionada.
+    if (!matched) matched = matchPositiveReplyRule(latestInbound, rules);
     if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
   } else if (!matched) {
-    matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
+    matched = matchBtxRule(latestInbound, rules) ?? matchPositiveReplyRule(latestInbound, rules)
+      ?? (isPositiveReply(latestInbound) ? rules.find((r) => r.mode === "sequence") ?? null : null);
   }
   if (matched) {
     const pick = matched.mode === "sequence" ? matched.variants.find((v) => v.trim()) : pickVariant(matched.variants);
@@ -342,6 +346,16 @@ export function matchPositiveBtxRule(rules: BtxRule[]) {
     if (/abord|inic|primeir|abertura/.test(label)) return false;
     return /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode (?:mandar|enviar)|responde.*sim|resposta.*sim|cliente.*\bsim\b/i.test(label);
   }) ?? null;
+}
+
+/** Recupera a regra de aceite quando a mensagem contém confirmação explícita,
+ * mesmo que o classificador também tenha identificado uma pergunta complementar. */
+export function matchPositiveReplyRule(message: string, rules: BtxRule[]) {
+  if (!isPositiveReply(message)) return null;
+  return matchPositiveBtxRule(rules) ?? rules.find((rule) =>
+    rule.mode === "sequence" && (rule.variants?.some((variant) => variant.trim()) || !!rule.audio_id)
+    && /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode enviar/i.test(rule.when)
+  ) ?? null;
 }
 export function isEmailOrForwardRequest(message: string) {
   return /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
