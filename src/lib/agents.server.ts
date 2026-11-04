@@ -287,9 +287,18 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false, pauseAfterSend: !!matched.stop_after_send };
   }
-  // Se nenhuma situação B-T6X corresponder, usa o fallback contextual descrito no prompt.
-  // Isso permite responder perguntas legítimas que não têm cartão próprio, sem inventar
-  // preços, prazos ou promessas. Não pausar automaticamente o contato por falta de regra.
+  // Com B-T6X cadastrado, ausência de correspondência é um bloqueio intencional:
+  // o agente não deve improvisar nem responder fora das situações configuradas.
+  if (rules.length > 0) {
+    return {
+      replies: [] as string[],
+      hot: true,
+      reason: `Objeção não prevista no B-T6X: "${latestInbound.slice(0, 120)}"`,
+      audioId: "",
+      stop: true,
+      pauseAfterSend: true,
+    };
+  }
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
