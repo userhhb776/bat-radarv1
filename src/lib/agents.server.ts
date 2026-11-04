@@ -266,12 +266,11 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
   const explicitTeamMatch = matchExistingTeamRule(latestInbound, rules);
   const decision = await interpretBtxIntent(a, fallbackKey, hist, rules);
   const trustedDecision = decision && decision.confidence >= 0.62 ? decision : null;
-  const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept");
+  const sequence = sequenceReply(hist, rules, leadContext, contactName, trustedDecision?.intent === "accept", openingMessagesFor(a));
   if (sequence) return { ...sequence, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId: (sequence as any).audioId && audios.some((x) => x.id === (sequence as any).audioId) ? (sequence as any).audioId : "" };
   let matched: BtxRule | null = explicitTeamMatch;
   if (!matched && trustedDecision) {
     if (trustedDecision.rule_index !== null) matched = rules[trustedDecision.rule_index - 1] ?? null;
-    if (!matched && trustedDecision.intent === "reject") return { replies: [], hot: false, reason: "", audioId: "", stop: true };
     if (!matched) { hot = trustedDecision.notify_owner; reason = trustedDecision.notify_owner ? trustedDecision.intent : ""; }
   } else if (!matched) {
     matched = matchBtxRule(latestInbound, rules) ?? (isPositiveReply(latestInbound) ? matchPositiveBtxRule(rules) ?? rules.find((r) => r.mode === "sequence") ?? null : null);
@@ -282,8 +281,18 @@ FALLBACK DE ÚLTIMA INSTÂNCIA: primeiro tente obrigatoriamente encontrar uma si
     if (matched.audio_id && audios.some((x) => x.id === matched.audio_id)) audioId = matched.audio_id;
     if (fixed.length || audioId) return { replies: fixed, hot: trustedDecision?.notify_owner ?? false, reason: trustedDecision?.notify_owner ? trustedDecision.intent : "", audioId, stop: trustedDecision?.stop ?? false, pauseAfterSend: !!matched.stop_after_send };
   }
-  // Última alternativa: nenhuma situação cadastrada serviu; só agora usa o agente treinado.
-  // O prompt acima mantém o B-T6X como prioridade e proíbe inventar preço/oferta/condições.
+  // Com B-T6X cadastrado, ausência de correspondência é um bloqueio: nunca improvisar via LLM.
+  if (rules.length > 0) {
+    return {
+      replies: [] as string[],
+      hot: true,
+      reason: `Objeção não prevista no B-T6X: "${latestInbound.slice(0, 120)}"`,
+      audioId: "",
+      stop: true,
+      pauseAfterSend: true,
+    };
+  }
+  // Última alternativa legada: sem B-T6X, o agente treinado pode responder.
   for (let i = 0; i < 3; i++) {
     const m = await llm(a, fallbackKey, convo, CLIENT_TOOLS);
     const calls = m.tool_calls ?? [];
@@ -389,9 +398,13 @@ export function matchLimpMessage(message: string, limp?: Limp) {
   return null;
 }
 
-export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string, forceAdvance = false) {
+export function sequenceReply(hist: Array<{role:string;content:string}>, rules: BtxRule[], lead: {name?:string;city?:string;niche?:string}, contactName: string, forceAdvance = false, openingMessages: string[] = []) {
   const lastOut = [...hist].reverse().find((h) => h.role === "assistant")?.content ?? "";
   const inbound = [...hist].reverse().find((h) => h.role === "user")?.content ?? "";
+  const assistantMessages = hist.filter((h) => h.role === "assistant");
+  const lastOutIsOpening = openingMessages.some((message) => canonicalScriptText(fillTemplate(message, { ...lead, name: lead.name || contactName })) === canonicalScriptText(lastOut));
+  const onlyInitialApproach = assistantMessages.length === 1;
+  const mayStartSequence = lastOutIsOpening || onlyInitialApproach;
   const accepted = forceAdvance || isPositiveReply(inbound);
   const numbered = numberedRuleGroups(rules).filter((g) => /aceit|interess|proposta|continua|avanc|pode enviar|quer receber/.test(g.key));
   for (const group of numbered) {
@@ -411,7 +424,7 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
     }
     if (!lastOut || !rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut))) {
-      if (accepted) {
+      if (accepted && mayStartSequence) {
         return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
       }
     }
@@ -425,7 +438,7 @@ export function sequenceReply(hist: Array<{role:string;content:string}>, rules: 
       return next ? { replies: [next], stop: false } : { replies: [] as string[], stop: true };
     }
     if (!lastOut || !rendered.some((v) => canonicalScriptText(v) === canonicalScriptText(lastOut))) {
-      if (accepted) {
+      if (accepted && mayStartSequence) {
         return rendered[0] ? { replies: [rendered[0]], stop: false } : null;
       }
     }
