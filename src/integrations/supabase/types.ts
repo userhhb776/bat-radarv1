@@ -286,6 +286,7 @@ export type Database = {
           ideal_client: string
           instance: string
           learned: string
+          limp: Json
           miner: Json
           mission: string
           model: string
@@ -312,6 +313,7 @@ export type Database = {
           ideal_client?: string
           instance?: string
           learned?: string
+          limp?: Json
           miner?: Json
           mission?: string
           model?: string
@@ -338,6 +340,7 @@ export type Database = {
           ideal_client?: string
           instance?: string
           learned?: string
+          limp?: Json
           miner?: Json
           mission?: string
           model?: string
