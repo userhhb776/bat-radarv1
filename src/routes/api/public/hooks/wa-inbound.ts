@@ -92,7 +92,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 // A Evolution pode reenviar o mesmo messages.upsert. Só a primeira entrega pode disparar a IA.
                 if (!(inb as any)?.id) continue;
                 const r: any = await humanReply(sb, { ...trainer, pace: "rapido", miner: { ...((trainer as any).miner ?? {}), md_teste: false } } as any, key, instance, phone, "Simulação", (inb as any).id);
-                if (r?.hot && !r?.replies?.length) {
+                if (r?.hot && !r?.replies?.length && !r?.audioId) {
                   await notifyUser(
                     supabaseAdmin,
                     trainer.user_id,
@@ -149,7 +149,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                   continue;
                 }
                 if (r.skipped) continue;
-                if (r.hot && !r.replies?.length) {
+                if (r.hot && !r.replies?.length && !r.audioId) {
                   await notifyUser(
                     supabaseAdmin,
                     a.user_id,
