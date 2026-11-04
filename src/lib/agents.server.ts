@@ -88,7 +88,7 @@ async function interpretBtxIntent(a: Agent, fallbackKey: string, hist: Array<{ r
     required: ["intent", "rule_index", "confidence", "notify_owner", "stop"],
     additionalProperties: false,
   };
-  const situations = rules.map((r, i) => ({ index: i + 1, situation: r.when, mode: r.mode === "sequence" ? "sequence" : "alternatives", has_response: r.variants?.some((v) => v.trim()) ?? false }));
+  const situations = rules.map((r, i) => ({ index: i + 1, situation: r.when, mode: r.mode === "sequence" ? "sequence" : "alternatives", has_response: (r.variants?.some((v) => v.trim()) || !!r.audio_id) ?? false }));
   const system = `Você é um CLASSIFICADOR de intenção para uma conversa comercial em português brasileiro.
 Sua tarefa é entender o significado da mensagem no CONTEXTO do histórico, não procurar palavras-chave.
 O roteiro B-T6X é a autoridade: escolha somente uma situação existente na lista; nunca escreva, invente, reescreva ou sugira mensagens.
@@ -132,7 +132,9 @@ confidence deve refletir sua certeza entre 0 e 1. Retorne somente o objeto no fo
     const confidence = Number(parsed.confidence);
     if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
     const index = parsed.rule_index;
-    if (index !== null && (!Number.isInteger(index) || Number(index) < 1 || Number(index) > rules.length || !rules[Number(index) - 1]?.variants?.some((v) => v.trim()))) return null;
+    const targetRule = rules[Number(index) - 1];
+    const targetHasAction = targetRule && (targetRule.variants?.some((v) => v.trim()) || !!targetRule.audio_id);
+    if (index !== null && (!Number.isInteger(index) || Number(index) < 1 || Number(index) > rules.length || !targetHasAction)) return null;
     return { intent: parsed.intent as BtxIntent, rule_index: index as number | null, confidence, notify_owner: parsed.notify_owner === true, stop: parsed.stop === true };
   } catch {
     return null;
@@ -334,7 +336,8 @@ function isPositiveReply(message: string) {
 /** Seleciona regras explícitas de aceite mesmo quando configuradas como alternativas. */
 export function matchPositiveBtxRule(rules: BtxRule[]) {
   return rules.find((rule) => {
-    if (!rule.variants?.some((variant) => variant.trim())) return false;
+    const hasAction = rule.variants?.some((variant) => variant.trim()) || !!rule.audio_id;
+    if (!hasAction) return false;
     const label = String(rule.when ?? "").toLowerCase();
     if (/abord|inic|primeir|abertura/.test(label)) return false;
     return /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode (?:mandar|enviar)|responde.*sim|resposta.*sim|cliente.*\bsim\b/i.test(label);
@@ -576,7 +579,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Fluxo humano: espera "lendo", junta mensagens seguidas do cliente, responde em balões/áudio. */
 export async function humanReply(sb: SupabaseClient, a: Agent, key: string, instance: string, phone: string, name: string, inboundId: string) {
-  const { data: paused } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).eq("phone", phone).maybeSingle();
+  const tail = phone.replace(/\\D/g, "").slice(-8);
+  const { samePhone } = await import("@/lib/wa-inbound.server");
+  const { data: pauses } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).like("phone", `%${tail}`).limit(10);
+  const paused = (pauses ?? []).some((p: any) => samePhone(String(p.phone ?? ""), phone));
   if (paused) return { skipped: "pausado" };
 
   const { data: inbound } = await sb.from("agent_messages").select("created_at,body").eq("id", inboundId).eq("agent_id", a.id).maybeSingle();
@@ -594,9 +600,11 @@ export async function humanReply(sb: SupabaseClient, a: Agent, key: string, inst
 
   // Respostas após 15 minutos desde a última mensagem do agente passam para atendimento manual.
   // Busca somente uma mensagem enviada antes desta resposta, evitando comparar com envios posteriores.
-  const { data: lastOutbound } = await sb.from("agent_messages").select("created_at")
-    .eq("agent_id", a.id).eq("phone", phone).eq("direction", "out")
-    .lt("created_at", inbound.created_at).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: outbounds } = await sb.from("agent_messages").select("created_at,phone")
+    .eq("agent_id", a.id).eq("direction", "out")
+    .like("phone", `%${tail}`)
+    .lt("created_at", inbound.created_at).order("created_at", { ascending: false }).limit(10);
+  const lastOutbound = (outbounds ?? []).find((m: any) => samePhone(String(m.phone ?? ""), phone));
   if (inbound.created_at && lastOutbound?.created_at) {
     const elapsed = new Date(inbound.created_at).getTime() - new Date(lastOutbound.created_at).getTime();
     if (elapsed > 15 * 60 * 1000) {
