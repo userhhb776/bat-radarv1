@@ -579,7 +579,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Fluxo humano: espera "lendo", junta mensagens seguidas do cliente, responde em balões/áudio. */
 export async function humanReply(sb: SupabaseClient, a: Agent, key: string, instance: string, phone: string, name: string, inboundId: string) {
-  const tail = phone.replace(/\\D/g, "").slice(-8);
+  const tail = phone.replace(/\D/g, "").slice(-8);
   const { samePhone } = await import("@/lib/wa-inbound.server");
   const { data: pauses } = await sb.from("agent_pauses").select("phone").eq("agent_id", a.id).like("phone", `%${tail}`).limit(10);
   const paused = (pauses ?? []).some((p: any) => samePhone(String(p.phone ?? ""), phone));
