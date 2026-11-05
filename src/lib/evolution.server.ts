@@ -68,7 +68,7 @@ export async function evoSendAudio(instance: string, phone: string, base64: stri
   const res = await fetch(`${base}/message/sendWhatsAppAudio/${encodeURIComponent(instance)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: key },
-    body: JSON.stringify({ number, audio: base64, encoding: false, delay: delayMs }),
+    body: JSON.stringify({ number, audio: base64, encoding: true, delay: delayMs }),
     signal: AbortSignal.timeout(60000),
   });
 
