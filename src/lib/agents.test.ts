@@ -86,6 +86,15 @@ describe("B-T6X linear flow", () => {
     const acceptance = { when: "Cliente aceita receber a apresentação", mode: "alternatives" as const, variants: ["Perfeito! Vou te explicar como funciona."] };
     expect(matchPositiveReplyRule("Boa tarde Lucas. Pode sim, como funcionaria?", [acceptance])).toBe(acceptance);
   });
+  it("usa a regra de demonstração com resposta configurada após aceite positivo sem regra sequence", () => {
+    const demo = { when: "Quando o cliente demonstra interesse e pede uma demonstração/apresentação", mode: "alternatives" as const, variants: ["Aqui está a demonstração."] };
+    expect(matchPositiveReplyRule("Podemos sim, como seria?", [demo])).toBe(demo);
+    expect(matchPositiveReplyRule("Pode sim, como funciona?", [demo])).toBe(demo);
+  });
+  it("não seleciona regra de demonstração sem resposta configurada", () => {
+    const empty = { when: "Cliente demonstra interesse e pede demonstração", variants: [] };
+    expect(matchPositiveReplyRule("Sim, quero ver a demonstração", [empty])).toBeNull();
+  });
   it("não força uma regra de aceite quando a mensagem não confirma", () => {
     const acceptance = { when: "Cliente aceita receber a apresentação", variants: ["Perfeito!"] };
     expect(matchPositiveReplyRule("Como funcionaria?", [acceptance])).toBeNull();
