@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, saveLimp, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
+import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, updateAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, saveLimp, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
 import { STATES } from "@/lib/mining-options";
 import { talkToAgent } from "@/lib/agents.functions";
 
@@ -332,11 +332,45 @@ function Audios({ id, audios }: { id: string; audios: any[] }) {
         </div>
       </div>
       {audios.map((x) => (
-        <div key={x.id} className="flex items-center justify-between gap-2 rounded-lg border bg-card p-2 text-sm">
-          <div><div className="font-medium">🎤 {x.title}</div><div className="text-xs text-muted-foreground">{x.trigger || "sem gatilho"}</div>{x.data && <audio controls preload="none" className="mt-1 h-8 max-w-full" src={String(x.data).startsWith("data:") ? x.data : `data:${x.mime || "audio/ogg"};base64,${x.data}`} />}</div>
-          <Button size="icon" variant="ghost" onClick={async () => { await del({ data: { id: x.id } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); }}><Trash2 className="h-4 w-4" /></Button>
-        </div>
+        <AudioRow key={x.id} x={x} onSaved={() => qc.invalidateQueries({ queryKey: ["cockpit", id] })} onDelete={async () => { if (!confirm("Apagar este áudio?")) return; await del({ data: { id: x.id } }); qc.invalidateQueries({ queryKey: ["cockpit", id] }); }} />
       ))}
+    </div>
+  );
+}
+
+function AudioRow({ x, onSaved, onDelete }: { x: any; onSaved: () => void; onDelete: () => void }) {
+  const upd = useServerFn(updateAudio);
+  const [edit, setEdit] = useState(false);
+  const [title, setTitle] = useState<string>(x.title ?? "");
+  const [trigger, setTrigger] = useState<string>(x.trigger ?? "");
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (!title.trim()) { toast.error("Dê um nome ao áudio."); return; }
+    setBusy(true);
+    try { await upd({ data: { id: x.id, title, trigger } }); toast.success("Áudio atualizado"); setEdit(false); onSaved(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
+  }
+  return (
+    <div className="space-y-2 rounded-lg border bg-card p-2 text-sm">
+      <div className="flex items-start justify-between gap-2">
+        {edit ? (
+          <div className="flex-1 space-y-1.5">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nome" />
+            <Textarea rows={2} value={trigger} onChange={(e) => setTrigger(e.target.value)} placeholder="Quando enviar" />
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={save}>{busy && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Salvar</Button>
+              <Button size="sm" variant="outline" onClick={() => { setTitle(x.title ?? ""); setTrigger(x.trigger ?? ""); setEdit(false); }}>Cancelar</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="min-w-0"><div className="font-medium">🎤 {x.title}</div><div className="text-xs text-muted-foreground">{x.trigger || "sem gatilho"}</div></div>
+        )}
+        {!edit && <div className="flex shrink-0">
+          <Button size="sm" variant="ghost" onClick={() => setEdit(true)}>Editar</Button>
+          <Button size="icon" variant="ghost" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
+        </div>}
+      </div>
+      {x.data && <audio controls preload="none" className="h-8 w-full" src={String(x.data).startsWith("data:") ? x.data : `data:${x.mime || "audio/ogg"};base64,${x.data}`} />}
     </div>
   );
 }
