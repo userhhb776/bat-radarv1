@@ -104,7 +104,7 @@ INTENÇÕES:
 - closing: quer contratar, comprar ou fechar.
 - other: mensagem social/assunto sem relação com as situações.
 - unclear: contexto insuficiente ou ambíguo.
-REGRA CRÍTICA: uma frase com negação ou recusa não é aceite ("sim, mas não quero", "pode não", "não precisa"). Considere a intenção completa e o contexto. "Pode sim" após uma pergunta pedindo autorização normalmente é accept.
+REGRA CRÍTICA: uma frase com negação ou recusa não é aceite ("sim, mas não quero", "pode não", "não precisa"). Considere a intenção completa e o contexto. "Pode sim" após uma pergunta pedindo autorização normalmente é accept. Quando a mensagem combinar concordância com pedido de detalhes ("podemos sim, como seria?", "pode sim, como funciona?"), classifique como accept e escolha a regra cadastrada que contém a explicação ou o áudio da demonstração/apresentação, se não existir uma regra mais específica de aceite. Se o cliente pedir para ver/conhecer uma demonstração, apresentação ou exemplo, priorize a regra com resposta cadastrada que mencione demonstração/apresentação; não escolha uma regra sem resposta.
 Escolha rule_index com o número da situação mais adequada, ou null se nenhuma regra cadastrada responder à intenção. Nunca escolha regra de abertura para responder a uma mensagem de continuidade, a menos que o cliente esteja explicitamente pedindo a apresentação inicial.
 notify_owner=true para interesse comercial real, preço, fechamento ou pedido de humano. stop=true somente quando o cliente pedir claramente para encerrar/parar contato.
 confidence deve refletir sua certeza entre 0 e 1. Retorne somente o objeto no formato exigido.`;
@@ -354,10 +354,22 @@ export function matchPositiveBtxRule(rules: BtxRule[]) {
  * mesmo que o classificador também tenha identificado uma pergunta complementar. */
 export function matchPositiveReplyRule(message: string, rules: BtxRule[]) {
   if (!isPositiveReply(message)) return null;
-  return matchPositiveBtxRule(rules) ?? rules.find((rule) =>
-    rule.mode === "sequence" && (rule.variants?.some((variant) => variant.trim()) || !!rule.audio_id)
-    && /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode enviar/i.test(rule.when)
-  ) ?? null;
+  const hasResponse = (rule: BtxRule) => !!rule.variants?.some((variant) => variant.trim()) || !!rule.audio_id;
+  const sequenceRule = rules.find((rule) =>
+    rule.mode === "sequence" && hasResponse(rule)
+    && /aceit|interess|positiv|confirm|concord|autoriz|continuar|seguir|avanc|quer receber|pode enviar|demonstr|apresent/i.test(rule.when)
+  );
+  if (sequenceRule) return sequenceRule;
+  const explicitAcceptance = matchPositiveBtxRule(rules);
+  if (explicitAcceptance) return explicitAcceptance;
+  // Fallback afirmativo: somente uma regra com resposta configurada e situação
+  // explicitamente relacionada a aceite, interesse ou demonstração/apresentação.
+  return rules.find((rule) => {
+    if (rule.mode === "sequence" || !hasResponse(rule)) return false;
+    const label = String(rule.when ?? "");
+    if (/abord|inic|primeir|abertura/i.test(label)) return false;
+    return /aceit|interess|demonstr|apresent/i.test(label);
+  }) ?? null;
 }
 export function isEmailOrForwardRequest(message: string) {
   return /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
