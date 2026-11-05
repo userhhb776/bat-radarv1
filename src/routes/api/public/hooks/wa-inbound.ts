@@ -95,7 +95,6 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
               if (trainer) {
                 const { humanReply } = await import("@/lib/agents.server");
                 // teste: nunca fica pausado no seu número e responde rápido (evita estourar o tempo do webhook)
-                await (sb as any).from("agent_pauses").delete().eq("agent_id", trainer.id).eq("phone", phone);
                 const providerMessageId = String(k["id"] ?? it["id"] ?? "").trim() || null;
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000), provider_message_id: providerMessageId }).select("id").maybeSingle();
                 // A Evolution pode reenviar o mesmo messages.upsert. Só a primeira entrega pode disparar a IA.
