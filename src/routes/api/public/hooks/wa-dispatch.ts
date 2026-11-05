@@ -10,6 +10,44 @@ export const Route = createFileRoute("/api/public/hooks/wa-dispatch")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { evoSend, evoLabel } = await import("@/lib/evolution.server");
         const { notifyUser } = await import("@/lib/push.server");
+        // Keep-alive: consulta o estado das instâncias usadas pelo sistema.
+        // O timeout curto evita prender a rodada do cron se o Render estiver acordando.
+        try {
+          const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
+          if (base && key) {
+            const [{ data: agentRows }, { data: scheduledRows }, { data: plCampaignRows }] = await Promise.all([
+              supabaseAdmin.from("agents").select("instance").eq("active", true),
+              supabaseAdmin.from("wa_scheduled").select("instance").in("status", ["pendente", "enviando", "enviada"]).limit(500),
+              supabaseAdmin.from("pl_campaigns").select("instance").eq("status", "ativa"),
+            ]);
+            const instances = [...new Set([
+              ...(agentRows ?? []).map((r) => String(r.instance ?? "").trim()),
+              ...(scheduledRows ?? []).map((r) => String(r.instance ?? "").trim()),
+              ...(plCampaignRows ?? []).map((r) => String(r.instance ?? "").trim()),
+            ].filter(Boolean))];
+            await Promise.all(instances.map(async (instance) => {
+              try {
+                const response = await fetch(`${base}/instance/connectionState/${encodeURIComponent(instance)}`, {
+                  method: "GET",
+                  headers: { apikey: key },
+                  signal: AbortSignal.timeout(8000),
+                });
+                if (!response.ok) {
+                  console.warn("[Evolution keep-alive] connectionState", instance, response.status);
+                  return;
+                }
+                const payload = await response.json().catch(() => null) as any;
+                const state = String(payload?.instance?.state ?? payload?.state ?? payload?.instance?.connectionStatus ?? "").toLowerCase();
+                if (state && state !== "open") console.warn("[Evolution keep-alive] instância não está open:", instance, state);
+                else if (!state) console.warn("[Evolution keep-alive] estado não identificado para:", instance);
+              } catch (error) {
+                console.warn("[Evolution keep-alive] ping falhou para", instance, error);
+              }
+            }));
+          }
+        } catch (error) {
+          console.warn("[Evolution keep-alive] não foi possível consultar instâncias:", error);
+        }
         // envios que ficaram presos em "enviando" (servidor caiu no meio) voltam como falha para poder tentar de novo
         const stale = new Date(Date.now() - 15 * 60000).toISOString();
         await supabaseAdmin.from("wa_scheduled").update({ status: "falhou", error: "Envio interrompido; confira no WhatsApp e tente de novo." }).eq("status", "enviando").lt("send_at", stale);
