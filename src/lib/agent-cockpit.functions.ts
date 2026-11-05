@@ -95,6 +95,15 @@ export const addAudio = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const updateAudio = createServerFn({ method: "POST" })
+  .middleware([requireApprovedAccount])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), title: z.string().trim().min(1).max(80), trigger: z.string().max(300) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await (context.supabase as any).from("agent_audios").update({ title: data.title, trigger: data.trigger }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const deleteAudio = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
   .inputValidator((d: unknown) => idOnly.parse(d))
