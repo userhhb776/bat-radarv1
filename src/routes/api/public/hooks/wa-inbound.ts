@@ -13,9 +13,9 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
         if (!body) return new Response("ok");
         const event = String(body["event"] ?? "").toLowerCase().replace("_", ".");
         if (event !== "messages.upsert") return new Response("ok");
-        const instance = String(body["instance"] ?? "");
+        const instance = String(body["instance"] ?? "").trim();
         const raw = body["data"];
-        const items = (Array.isArray(raw) ? raw : [raw]) as Array<Record<string, unknown>>;
+        const items = (Array.isArray(raw) ? raw : [raw]).filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item)) as Array<Record<string, unknown>>;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { notifyUser } = await import("@/lib/push.server");
         const pl = supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient;
@@ -33,7 +33,16 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
           try {
             const msg = (it?.["message"] ?? {}) as Record<string, any>;
             const text = String(msg["conversation"] ?? msg["extendedTextMessage"]?.["text"] ?? "").trim();
-            const { data: agents } = await supabaseAdmin.from("agents").select("*").eq("instance", instance).eq("active", true);
+            // Primeiro tenta o nome exato; se a Evolution enviar variação de caixa/espaços,
+            // usa fallback normalizado sem recorrer a buscas parciais (evita cruzar instâncias).
+            let { data: agents } = await supabaseAdmin.from("agents").select("*").eq("instance", instance).eq("active", true);
+            if (!agents?.length) {
+              const { data: activeAgents } = await supabaseAdmin.from("agents").select("*").eq("active", true);
+              const normalizedInstance = instance.trim().toLocaleLowerCase();
+              agents = (activeAgents ?? []).filter((agent: any) =>
+                String(agent.instance ?? "").trim().toLocaleLowerCase() === normalizedInstance
+              );
+            }
             if (fromMe) {
               // mensagem que você mandou pelo celular: registra na conversa do agente e pausa a IA nesse contato
               // no número de teste do dono não registra pausa (senão o agente para de responder no teste)
@@ -87,7 +96,7 @@ export const Route = createFileRoute("/api/public/hooks/wa-inbound")({
                 const { humanReply } = await import("@/lib/agents.server");
                 // teste: nunca fica pausado no seu número e responde rápido (evita estourar o tempo do webhook)
                 await (sb as any).from("agent_pauses").delete().eq("agent_id", trainer.id).eq("phone", phone);
-                const providerMessageId = String(k["id"] ?? "").trim() || null;
+                const providerMessageId = String(k["id"] ?? it["id"] ?? "").trim() || null;
                 const { data: inb } = await sb.from("agent_messages").insert({ user_id: trainer.user_id, agent_id: trainer.id, phone, contact_name: "Simulação (você)", direction: "in", body: text.slice(0, 4000), provider_message_id: providerMessageId }).select("id").maybeSingle();
                 // A Evolution pode reenviar o mesmo messages.upsert. Só a primeira entrega pode disparar a IA.
                 if (!(inb as any)?.id) continue;
