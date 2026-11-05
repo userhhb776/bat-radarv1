@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, saveLimp, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
+import { agentCockpit, saveAgentDetails, runAgentMiner, sendManual, setPause, addAudio, updateAudio, deleteAudio, studyPrint, moveToMyLeads, importBlockToAgent, listMyBlocks, saveBtx, saveLimp, varyMessage, buildBtxPlan, approveTest } from "@/lib/agent-cockpit.functions";
 import { STATES } from "@/lib/mining-options";
 import { talkToAgent } from "@/lib/agents.functions";
 
