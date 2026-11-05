@@ -51,7 +51,18 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
   async function finish(kind: "publicar" | "v1" | "v2") {
     setBusy(true);
     try {
-      if (kind === "publicar") { const id = await persist({ active: true, training_mode: false }); toast.success("Agente publicado e trabalhando"); nav({ to: "/agentes/$id", params: { id } }); }
+      if (kind === "publicar") {
+        const id = await persist({ active: true, training_mode: false });
+        // Dispara a mineração inicial sem exigir que o usuário abra a aba Minerador.
+        const r: any = await mine({ data: { id } });
+        const qtd = r?.novas ?? 0;
+        toast.success(
+          r?.erro
+            ? `Agente publicado! Aviso: ${r.erro}`
+            : `Agente publicado! ${qtd > 0 ? `${qtd} empresas mineradas e colocadas na fila.` : "Minerador ativado."}`
+        );
+        nav({ to: "/agentes/$id", params: { id } });
+      }
       if (kind === "v1") { const id = await persist({ active: true, _teste: true }); const r: any = await mine({ data: { id } }); toast.success(r?.erro ?? `Teste V1: ${r?.novas ?? 0} empresas analisadas, nada enviado`); nav({ to: "/agentes/$id", params: { id } }); }
       if (kind === "v2") { const id = await persist(); await v2({ data: { id } }); toast.success("Abordagem enviada para o seu WhatsApp. Responda como se fosse o cliente."); nav({ to: "/agentes/$id", params: { id } }); }
     } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); } finally { setBusy(false); }
