@@ -1,4 +1,4 @@
-import luciusAvatar from "@/assets/agents/lucius.jpg";
+
 export interface AgentTemplate {
   id: string;
   name: string;
@@ -27,7 +27,7 @@ export interface AgentTemplate {
 export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   {
     id: "alfred", name: "Alfred", codename: "Serviços Nobres & Alta Renda",
-    avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+    avatar_url: "/agents/alfred.jpg",
     specialty: "Clínicas, Consultórios, Advocacia e Imobiliárias",
     tagline: "Abordagem formal, polida e de alta autoridade para decisores exigentes.",
     description: "Especialista em abordar médicos, advogados e executivos com discrição e elegância, destacando autoridade digital.",
@@ -51,7 +51,7 @@ export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   },
   {
     id: "oraculo", name: "Oráculo (Oracle)", codename: "Varejo Visual & Moda",
-    avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+    avatar_url: "/agents/oraculo.jpg",
     specialty: "Lojas de Roupas, Cosméticos, Calçados e Estética",
     tagline: "Abordagem dinâmica para negócios que vendem pela imagem e precisam de catálogo próprio.",
     description: "Especialista em comércio local e moda. Mostra o valor de ter catálogo próprio para vender sem depender apenas de direct do Instagram.",
@@ -75,7 +75,7 @@ export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   },
   {
     id: "nightwing", name: "Asa Noturna (Nightwing)", codename: "Gastronomia & Delivery",
-    avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+    avatar_url: "/agents/nightwing.jpg",
     specialty: "Restaurantes, Pizzarias, Hamburguerias e Cafeterias",
     tagline: "Abordagem rápida focada em cardápio digital próprio e fuga das taxas de aplicativos.",
     description: "Especialista em alimentação. Toca na dor real do dono de restaurante: taxas abusivas de marketplaces e desorganização nos pedidos.",
@@ -99,7 +99,7 @@ export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   },
   {
     id: "lucius", name: "Lucius Fox", codename: "B2B & Serviços Técnicos",
-    avatar_url: luciusAvatar,
+    avatar_url: "/agents/lucius.jpg",
     specialty: "Oficinas Mecânicas, Climatização, Construção e Autopeças",
     tagline: "Abordagem técnica e pragmática voltada a captação de clientes de emergência.",
     description: "Especialista em serviços pesados e técnicos. Foca na captação de clientes que buscam consertos e manutenções urgentes no Google.",
@@ -123,7 +123,7 @@ export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   },
   {
     id: "batman", name: "Bat-Vigilante", codename: "Concorrência & Domínio Local",
-    avatar_url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80",
+    avatar_url: "/agents/vigilante.png",
     specialty: "Nichos Concorridos & Domínio de Buscas",
     tagline: "Abordagem estratégica que revela a perda de clientes para concorrentes da região.",
     description: "Aborda empresas com potencial apontando que os concorrentes da mesma rua/bairro já possuem site e estão monopolizando as buscas.",
