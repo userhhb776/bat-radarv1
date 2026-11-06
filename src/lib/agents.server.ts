@@ -735,12 +735,13 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
   // Telefones já conhecidos (conversas, carteiras de agentes, CRM): nunca abordar de novo.
   const tail8 = (p: unknown) => digits(String(p ?? "")).slice(-8);
-  const [{ data: pm }, { data: pa }, { data: pl }] = await Promise.all([
+  const [{ data: pm }, { data: pa }, { data: pl }, { data: pw }] = await Promise.all([
     sb.from("agent_messages").select("phone").eq("user_id", a.user_id).limit(20000),
+    sb.from("wa_scheduled").select("phone").eq("user_id", a.user_id).limit(20000),
     sb.from("agent_leads").select("phone").eq("user_id", a.user_id).limit(20000),
     sb.from("leads").select("phone").eq("user_id", a.user_id).limit(20000),
   ]);
-  const knownPhones = new Set([...(pm ?? []), ...(pa ?? []), ...(pl ?? [])].map((x: any) => tail8(x.phone)).filter((t) => t.length >= 8));
+  const knownPhones = new Set([...(pm ?? []), ...(pa ?? []), ...(pl ?? []), ...(pw ?? [])].map((x: any) => tail8(x.phone)).filter((t) => t.length >= 8));
   const seen = new Set<string>();
   let dupPhone = 0;
   let fresh = found.filter((x) => {
