@@ -27,7 +27,7 @@ export interface AgentTemplate {
 export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   {
     id: "alfred", name: "Alfred", codename: "Serviços Nobres & Alta Renda",
-    avatar_url: "https://images.unsplash.com/X",
+    avatar_url: "/agents/alfred.jpg",
     specialty: "Clínicas, Consultórios, Advocacia e Imobiliárias",
     tagline: "Abordagem formal, polida e de alta autoridade para decisores exigentes.",
     description: "Especialista em abordar médicos, advogados e executivos com discrição e elegância, destacando autoridade digital.",
