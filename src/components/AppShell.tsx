@@ -27,6 +27,7 @@ const groups = [
   ] },
   { label: "Modo AGT", items: [
     { title: "Agentes", url: "/agentes", icon: Bot },
+    { title: "AGTS - 01", url: "/agts-01", icon: Users },
     { title: "Agentes V2", url: "/agentes-v2", icon: Brain },
   ] },
   { label: "Vendas", items: [
