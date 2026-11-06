@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { saveAgent, deleteAgent, designAgent } from "@/lib/agents.functions";
 import { saveAgentDetails, studyPrint, runAgentMiner, startTestV2 } from "@/lib/agent-cockpit.functions";
 import { STATES } from "@/lib/mining-options";
+import { BAT_AGENT_TEMPLATES, type AgentTemplate } from "@/lib/agent-templates";
 
 const STEPS = ["Nome", "Número", "Instruções", "O que entendeu", "Mensagens", "Minerador", "Envios", "Revisão"];
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -33,13 +34,19 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
   const [pace, setPace] = useState<string>(a.pace ?? "calmo");
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
   const sm = (k: string, v: any) => setM((p: any) => ({ ...p, [k]: v }));
+  function useTemplate(t: AgentTemplate) {
+    setF((p: any) => ({ ...p, name: t.name, avatar_url: t.avatar_url, mission: t.mission, offer: t.offer, rules: t.rules, ideal_client: t.ideal_client, btx: t.btx }));
+    setM({ ...t.miner }); setSteps(t.script_steps.map((s) => ({ ...s }))); setPace(t.pace);
+    toast.success("Modelo aplicado. Revise e personalize os dados antes de publicar.");
+  }
   const tog = (k: string, x: any) => sm(k, m[k].includes(x) ? m[k].filter((y: any) => y !== x) : [...m[k], x]);
 
   async function persist(extra: Record<string, any> = {}) {
     const r = await save({ data: { id: f.id, name: f.name, avatar_url: f.avatar_url ?? null, mission: f.mission ?? "", offer: f.offer ?? "", rules: f.rules ?? "", ideal_client: f.ideal_client ?? "", instance: f.instance ?? "", ai_provider: f.ai_provider, ai_key: f.ai_key, model: f.model, active: f.active, auto_reply: f.auto_reply, training_mode: f.training_mode, ...extra } as any });
     const id = r.id as string;
     setF((p: any) => ({ ...p, id, ...extra }));
-    await saveD({ data: { id, context: a.context ?? "", style: a.style ?? "", pace, script_steps: steps.filter((s) => s.message.trim() || s.title.trim()).slice(0, 10), miner: { ...m0, ...m, niche: m.niches[0] ?? "", md_teste: !!extra["_teste"] } } as any });
+    const templateRules = f.btx ? [...(f.btx.approach_rules ?? []), ...(f.btx.objection_rules ?? [])].filter((r: any) => r.active !== false).map((r: any) => ({ when: r.trigger, variants: r.variants, mode: "alternatives" as const, ...(r.audio_id ? { audio_id: r.audio_id } : {}) })) : undefined;
+    await saveD({ data: { id, context: a.context ?? "", style: a.style ?? "", pace, script_steps: steps.filter((s) => s.message.trim() || s.title.trim()).slice(0, 10), miner: { ...m0, ...m, niche: m.niches[0] ?? "", md_teste: !!extra["_teste"] }, ...(templateRules ? { btx: { prompt: "", rules: templateRules } } : {}) } as any });
     qc.invalidateQueries({ queryKey: ["agents"] });
     return id;
   }
@@ -74,7 +81,20 @@ export function AgentWizard({ a, admin, inst, onClose }: { a: any; admin: boolea
         {STEPS.map((s, i) => <button key={s} type="button" disabled={!f.id && i > 1} onClick={() => setStep(i)} className={`rounded-full px-2.5 py-1 text-xs ${i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}. {s}</button>)}
       </div>
 
-      {step === 0 && <F label="Nome do agente"><Input autoFocus value={f.name ?? ""} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Vega" /></F>}
+      {step === 0 && <div className="space-y-3">
+        {!a?.id && <div className="space-y-2">
+          <div><h2 className="font-semibold">Modelos BatRadar</h2><p className="text-sm text-muted-foreground">Escolha um especialista pronto ou comece com um agente em branco.</p></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {BAT_AGENT_TEMPLATES.map((t) => <div key={t.id} className="space-y-2 rounded-lg border bg-card p-3">
+              <div className="flex items-center gap-3"><img src={t.avatar_url} alt={t.name} className="h-12 w-12 rounded-full border border-primary/30 object-cover" /><div><div className="font-semibold">{t.name}</div><div className="text-xs text-primary">{t.codename}</div></div></div>
+              <p className="text-sm font-medium">{t.specialty}</p><p className="text-xs text-muted-foreground">{t.miner.niches.join(" · ")}</p><p className="text-xs text-muted-foreground">{t.tagline}</p>
+              <Button type="button" size="sm" className="w-full" variant={f.name === t.name ? "default" : "outline"} onClick={() => useTemplate(t)}>Usar este modelo</Button>
+            </div>)}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => { setF({ ai_provider: "native", model: "gpt-oss:120b", auto_reply: true, active: false, training_mode: false, mission: "", offer: "", rules: "", ideal_client: "", instance: "", name: "", avatar_url: null }); setM({ niches: [], states: [], daily: 15, auto_approach: true, btx_opening: false, dias: [1,2,3,4,5], hora_inicio: 8, hora_fim: 18, gap_min: 6, gap_max: 15, limite_dia: 30, open_gap_min: 12, open_gap_max: 17 }); setSteps([{ title: "Abordagem inicial", goal: "Primeiro contato", message: "" }]); setPace("calmo"); }}>Criar do Zero</Button>
+        </div>}
+        <F label="Nome do agente"><Input autoFocus value={f.name ?? ""} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Vega" /></F>
+      </div>}
 
       {step === 1 && <F label="Número de WhatsApp que ele vai usar">
         <select className="w-full rounded-md border bg-background p-2 text-sm" value={f.instance} onChange={(e) => set("instance", e.target.value)}>
