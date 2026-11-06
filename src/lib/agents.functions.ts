@@ -5,6 +5,7 @@ import { requireApprovedAccount } from "@/lib/access.middleware";
 const agentInput = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(60),
+  avatar_url: z.string().nullable().optional(),
   mission: z.string().max(3000), offer: z.string().max(3000), rules: z.string().max(6000), ideal_client: z.string().max(3000),
   instance: z.string().max(120),
   ai_provider: z.enum(["native", "custom"]), ai_key: z.string().max(300).optional(), model: z.string().max(80),
@@ -26,7 +27,7 @@ export const saveAgent = createServerFn({ method: "POST" })
     const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (data.training_mode && !admin) throw new Error("Modo treinamento é exclusivo do administrador.");
     const { id, ai_key, ...rest0 } = data as any; const { _teste: _t, ...rest } = rest0;
-    const row: any = { ...rest, user_id: context.userId, training_phone: admin ? "5568992316302" : "" };
+    const row: any = { ...rest, avatar_url: data.avatar_url ?? null, user_id: context.userId, training_phone: admin ? "5568992316302" : "" };
     if (ai_key && !ai_key.startsWith("••")) row["ai_key"] = ai_key;
     if (data.ai_provider === "native") row["ai_key"] = null;
     let wasTraining = false;
