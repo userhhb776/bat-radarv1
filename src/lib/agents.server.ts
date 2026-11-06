@@ -597,7 +597,7 @@ export function conversationGapMs(rnd = Math.random()) {
   return Math.round((3500 + rnd * 3500));
 }
 
-export const PACE: Record<string, [number, number]> = { rapido: [6, 15], equilibrado: [15, 40], calmo: [40, 85] };
+export const PACE: Record<string, [number, number]> = { rapido: [5, 12], equilibrado: [8, 16], calmo: [10, 20] };
 export function paceDelayMs(pace: string | undefined, rnd = Math.random()) {
   const c = /^s:(\d+)-(\d+)$/.exec(pace ?? "");
   const [lo, hi] = c ? [Number(c[1]), Math.max(Number(c[1]), Number(c[2]))] : PACE[pace ?? ""] ?? PACE["equilibrado"]!;
@@ -733,8 +733,23 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
     sb.from("leads").select("place_id").eq("user_id", a.user_id).in("place_id", ids),
   ]);
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
+  // Telefones já conhecidos (conversas, carteiras de agentes, CRM): nunca abordar de novo.
+  const tail8 = (p: unknown) => digits(String(p ?? "")).slice(-8);
+  const [{ data: pm }, { data: pa }, { data: pl }] = await Promise.all([
+    sb.from("agent_messages").select("phone").eq("user_id", a.user_id).limit(20000),
+    sb.from("agent_leads").select("phone").eq("user_id", a.user_id).limit(20000),
+    sb.from("leads").select("phone").eq("user_id", a.user_id).limit(20000),
+  ]);
+  const knownPhones = new Set([...(pm ?? []), ...(pa ?? []), ...(pl ?? [])].map((x: any) => tail8(x.phone)).filter((t) => t.length >= 8));
   const seen = new Set<string>();
-  let fresh = found.filter((x) => !skip.has(x.place_id) && !seen.has(x.place_id) && seen.add(x.place_id));
+  let dupPhone = 0;
+  let fresh = found.filter((x) => {
+    if (skip.has(x.place_id) || seen.has(x.place_id)) return false;
+    const t = tail8(x.phone);
+    if (t.length >= 8 && knownPhones.has(t)) { dupPhone++; return false; }
+    seen.add(x.place_id); if (t) knownPhones.add(t); return true;
+  });
+  if (dupPhone) await logEvent(sb, a, "filtrou", `Descartou ${dupPhone} empresas que já tinham contato ou conversa anterior`);
   let withSite = 0;
   const keep: typeof fresh = [];
   for (const x of fresh) { if (keep.length >= limit) break; if (await hasOwnSite(x.name, x.city ?? "")) withSite++; else keep.push(x); }
@@ -794,8 +809,11 @@ export async function processAgentQueue(sb: SupabaseClient) {
   const sentToday = new Map<string, number>();
   const { data: due } = await sb.from("agent_leads").select("*").eq("status", "fila").lte("send_at", new Date().toISOString()).order("send_at").limit(60);
   let sent = 0;
+  const doneAgents = new Set<string>();
   for (const l of (due ?? []) as any[]) {
     if (sent >= 8) break;
+    // Anti-rajada: no máximo 1 empresa por agente por rodada.
+    if (doneAgents.has(l.agent_id)) continue;
     const { data: ag0 } = await sb.from("agents").select("miner,active").eq("id", l.agent_id).single();
     const m0 = ((ag0 as any)?.miner ?? {}) as Miner;
     // Agente desligado ou em md-teste: mantém na fila sem enviar (nunca dispara sozinho e não perde a empresa).
@@ -803,6 +821,24 @@ export async function processAgentQueue(sb: SupabaseClient) {
     if (!inWindow(m0)) continue;
     if (!sentToday.has(l.agent_id)) { const { count } = await sb.from("agent_events").select("id", { count: "exact", head: true }).eq("agent_id", l.agent_id).eq("kind", "abordou").gte("created_at", today); sentToday.set(l.agent_id, count ?? 0); }
     if (sentToday.get(l.agent_id)! >= (m0.limite_dia ?? 30)) continue;
+    // Respeita o intervalo mínimo desde a última abordagem real deste agente.
+    const { data: lastEv } = await sb.from("agent_events").select("created_at").eq("agent_id", l.agent_id).eq("kind", "abordou").order("created_at", { ascending: false }).limit(1);
+    const lastAt = lastEv?.[0]?.created_at ? new Date(lastEv[0].created_at).getTime() : 0;
+    const minGap = Math.max(1, m0.gap_min ?? 6) * 60000;
+    if (lastAt && Date.now() - lastAt < minGap) {
+      doneAgents.add(l.agent_id);
+      const g1 = Math.max(m0.gap_min ?? 6, m0.gap_max ?? 15);
+      const next = lastAt + minGap + Math.random() * (g1 - (m0.gap_min ?? 6)) * 60000;
+      await sb.from("agent_leads").update({ send_at: new Date(next).toISOString() }).eq("id", l.id).eq("status", "fila");
+      continue;
+    }
+    // Nunca aborda quem já tem conversa registrada (com qualquer agente do dono).
+    const t8 = digits(String(l.phone ?? "")).slice(-8);
+    if (t8.length >= 8) {
+      const { data: prior } = await sb.from("agent_messages").select("id").eq("user_id", l.user_id).like("phone", `%${t8}`).limit(1);
+      if (prior?.length) { await sb.from("agent_leads").update({ status: "ja_contatado" }).eq("id", l.id).eq("status", "fila"); continue; }
+    }
+    doneAgents.add(l.agent_id);
     const { data: got } = await sb.from("agent_leads").update({ status: "enviando" }).eq("id", l.id).eq("status", "fila").select("id");
     if (!got?.length) continue;
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
