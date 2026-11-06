@@ -278,6 +278,7 @@ export interface FileRoutesByTo {
   '/acess': typeof AuthenticatedAcessRoute
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/agentes': typeof AuthenticatedAgentesRoute
+  '/agentes-v2': typeof AuthenticatedAgentesV2Route
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
@@ -355,6 +356,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/agentes'
+    | '/agentes-v2'
     | '/aprendizado'
     | '/argos'
     | '/blocos'
@@ -391,6 +393,7 @@ export interface FileRouteTypes {
     | '/acess'
     | '/agendamentos'
     | '/agentes'
+    | '/agentes-v2'
     | '/aprendizado'
     | '/argos'
     | '/blocos'
@@ -428,6 +431,7 @@ export interface FileRouteTypes {
     | '/_authenticated/acess'
     | '/_authenticated/agendamentos'
     | '/_authenticated/agentes'
+    | '/_authenticated/agentes-v2'
     | '/_authenticated/aprendizado'
     | '/_authenticated/argos'
     | '/_authenticated/blocos'
@@ -733,6 +737,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAcessRoute: typeof AuthenticatedAcessRoute
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAgentesRoute: typeof AuthenticatedAgentesRoute
+  AuthenticatedAgentesV2Route: typeof AuthenticatedAgentesV2Route
   AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
   AuthenticatedArgosRoute: typeof AuthenticatedArgosRoute
   AuthenticatedBlocosRoute: typeof AuthenticatedBlocosRoute
@@ -804,13 +809,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
