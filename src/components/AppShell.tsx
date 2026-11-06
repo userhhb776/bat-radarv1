@@ -27,6 +27,7 @@ const groups = [
   ] },
   { label: "Modo AGT", items: [
     { title: "Agentes", url: "/agentes", icon: Bot },
+    { title: "Agentes V2", url: "/agentes-v2", icon: Brain },
   ] },
   { label: "Vendas", items: [
     { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
