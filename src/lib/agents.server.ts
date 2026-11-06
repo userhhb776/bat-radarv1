@@ -156,6 +156,65 @@ async function llm(a: Agent, fallbackKey: string, messages: any[], tools: Tool[]
 
 const digits = (s: string) => s.replace(/\D/g, "");
 
+// Cache curto de contatos conhecidos por conta para deduplicar entre instâncias WhatsApp.
+const instanceChatsCache = new Map<string, { phones: Set<string>; expire: number }>();
+
+export async function getKnownPhonesFromAllInstances(sb: SupabaseClient, userId: string): Promise<Set<string>> {
+  const cached = instanceChatsCache.get(userId);
+  if (cached && cached.expire > Date.now()) return cached.phones;
+
+  const phones = new Set<string>();
+  try {
+    const [{ getEvo }, { canUse }] = await Promise.all([
+      import("@/lib/service-config.server"),
+      import("@/lib/wa-owner"),
+    ]);
+    const [{ base, key }, { data: adminData }] = await Promise.all([
+      getEvo(),
+      sb.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    ]);
+    if (base && key) {
+      const response = await fetch(`${base}/instance/fetchInstances`, {
+        headers: { apikey: key },
+        signal: AbortSignal.timeout(15000),
+      }).catch(() => null);
+      if (response?.ok) {
+        const raw = await response.json();
+        const list = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
+        const instances = [...new Set(list
+          .map((item) => String(item.name ?? item.instanceName ?? "").trim())
+          .filter((name) => name && canUse(userId, adminData === true, name)))];
+        await Promise.all(instances.map(async (instance) => {
+          try {
+            const res = await fetch(`${base}/chat/findChats/${encodeURIComponent(instance)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", apikey: key },
+              body: JSON.stringify({}),
+              signal: AbortSignal.timeout(12000),
+            });
+            if (!res.ok) return;
+            const chats = await res.json();
+            if (!Array.isArray(chats)) return;
+            for (const chat of chats) {
+              const jid = String(chat?.remoteJid ?? "");
+              if (!jid.endsWith("@s.whatsapp.net")) continue;
+              const number = jid.split("@")[0]!.replace(/\D/g, "");
+              if (number.length >= 8) phones.add(number.slice(-8));
+            }
+          } catch {
+            // Uma instância offline não impede a consulta das demais.
+          }
+        }));
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao cruzar chats da Evolution API:", error);
+  }
+  instanceChatsCache.set(userId, { phones, expire: Date.now() + 10 * 60_000 });
+  return phones;
+}
+
+
 export async function ownerTool(sb: SupabaseClient, a: Agent, name: string, p: Record<string, any>, origin: string) {
   if (name === "conversa_com") {
     const q = String(p["busca"] ?? "").trim();
@@ -735,13 +794,20 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const skip = new Set([...(mine ?? []), ...(owner ?? [])].map((x: any) => x.place_id));
   // Telefones já conhecidos (conversas, carteiras de agentes, CRM): nunca abordar de novo.
   const tail8 = (p: unknown) => digits(String(p ?? "")).slice(-8);
-  const [{ data: pm }, { data: pw }, { data: pa }, { data: pl }] = await Promise.all([
-    sb.from("agent_messages").select("phone").eq("user_id", a.user_id).limit(20000),
-    sb.from("wa_scheduled").select("phone").eq("user_id", a.user_id).limit(20000),
-    sb.from("agent_leads").select("phone").eq("user_id", a.user_id).limit(20000),
-    sb.from("leads").select("phone").eq("user_id", a.user_id).limit(20000),
+  const [evoPhones, pm, pw, pa, pl] = await Promise.all([
+    getKnownPhonesFromAllInstances(sb, a.user_id),
+    sb.from("agent_messages").select("phone").eq("user_id", a.user_id).limit(20000).then((r) => r.data),
+    sb.from("wa_scheduled").select("phone").eq("user_id", a.user_id).limit(20000).then((r) => r.data),
+    sb.from("agent_leads").select("phone").eq("user_id", a.user_id).limit(20000).then((r) => r.data),
+    sb.from("leads").select("phone").eq("user_id", a.user_id).limit(20000).then((r) => r.data),
   ]);
-  const knownPhones = new Set([...(pm ?? []), ...(pa ?? []), ...(pl ?? []), ...(pw ?? [])].map((x: any) => tail8(x.phone)).filter((t) => t.length >= 8));
+  const knownPhones = new Set([
+    ...Array.from(evoPhones),
+    ...(pm ?? []).map((x: any) => tail8(x.phone)),
+    ...(pa ?? []).map((x: any) => tail8(x.phone)),
+    ...(pl ?? []).map((x: any) => tail8(x.phone)),
+    ...(pw ?? []).map((x: any) => tail8(x.phone)),
+  ].filter((t) => t.length >= 8));
   const seen = new Set<string>();
   let dupPhone = 0;
   let fresh = found.filter((x) => {
@@ -836,8 +902,14 @@ export async function processAgentQueue(sb: SupabaseClient) {
     // Nunca aborda quem já tem conversa registrada (com qualquer agente do dono).
     const t8 = digits(String(l.phone ?? "")).slice(-8);
     if (t8.length >= 8) {
-      const { data: prior } = await sb.from("agent_messages").select("id").eq("user_id", l.user_id).like("phone", `%${t8}`).limit(1);
-      if (prior?.length) { await sb.from("agent_leads").update({ status: "ja_contatado" }).eq("id", l.id).eq("status", "fila"); continue; }
+      const [evoPhones, priorMsg] = await Promise.all([
+        getKnownPhonesFromAllInstances(sb, l.user_id),
+        sb.from("agent_messages").select("id").eq("user_id", l.user_id).like("phone", `%${t8}`).limit(1).then((r) => r.data),
+      ]);
+      if (priorMsg?.length || evoPhones.has(t8)) {
+        await sb.from("agent_leads").update({ status: "ja_contatado" }).eq("id", l.id).eq("status", "fila");
+        continue;
+      }
     }
     doneAgents.add(l.agent_id);
     const { data: got } = await sb.from("agent_leads").update({ status: "enviando" }).eq("id", l.id).eq("status", "fila").select("id");
