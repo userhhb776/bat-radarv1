@@ -1,0 +1,2 @@
+ALTER TABLE public.agents ADD COLUMN IF NOT EXISTS squad text, ADD COLUMN IF NOT EXISTS persona jsonb NOT NULL DEFAULT '{}'::jsonb;
+UPDATE public.agents SET squad = 'agts01' WHERE squad IS NULL AND (name ILIKE 'Alfred%' OR name ILIKE 'Oráculo%' OR name ILIKE 'Oraculo%' OR name ILIKE 'Asa Noturna%' OR name ILIKE 'Lucius%' OR name ILIKE 'Bat-Vigilante%');

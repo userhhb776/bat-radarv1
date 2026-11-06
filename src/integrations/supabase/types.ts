@@ -294,8 +294,10 @@ export type Database = {
           name: string
           offer: string
           pace: string
+          persona: Json
           rules: string
           script_steps: Json
+          squad: string | null
           style: string
           training_mode: boolean
           training_phone: string
@@ -322,8 +324,10 @@ export type Database = {
           name: string
           offer?: string
           pace?: string
+          persona?: Json
           rules?: string
           script_steps?: Json
+          squad?: string | null
           style?: string
           training_mode?: boolean
           training_phone?: string
@@ -350,8 +354,10 @@ export type Database = {
           name?: string
           offer?: string
           pace?: string
+          persona?: Json
           rules?: string
           script_steps?: Json
+          squad?: string | null
           style?: string
           training_mode?: boolean
           training_phone?: string
