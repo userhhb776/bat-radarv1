@@ -279,6 +279,7 @@ export type Database = {
           ai_key: string | null
           ai_provider: string
           auto_reply: boolean
+          avatar_url: string | null
           btx: Json
           context: string
           created_at: string
@@ -306,6 +307,7 @@ export type Database = {
           ai_key?: string | null
           ai_provider?: string
           auto_reply?: boolean
+          avatar_url?: string | null
           btx?: Json
           context?: string
           created_at?: string
@@ -333,6 +335,7 @@ export type Database = {
           ai_key?: string | null
           ai_provider?: string
           auto_reply?: boolean
+          avatar_url?: string | null
           btx?: Json
           context?: string
           created_at?: string
