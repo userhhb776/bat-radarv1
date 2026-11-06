@@ -52,8 +52,7 @@ function Page() {
             <div key={a.id} className="rounded-lg border bg-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="font-semibold">{a.name}</div>
-                  <div className="text-xs text-muted-foreground">{a.instance || "sem número"} · {a.ai_provider === "custom" ? "IA própria" : "IA nativa"}{a.training_mode ? " · treinamento ligado" : ""}</div>
+                  <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 font-bold">{a.avatar_url ? <img src={a.avatar_url} alt={a.name} className="h-full w-full object-cover" /> : a.name.slice(0, 2).toUpperCase()}</div><div><div className="font-semibold">{a.name}</div><div className="text-xs text-muted-foreground">{a.instance || "sem número"} · {a.ai_provider === "custom" ? "IA própria" : "IA nativa"}{a.training_mode ? " · treinamento ligado" : ""}</div></div></div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label="Ativar agente" />
