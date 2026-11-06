@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listAgents, saveAgent, deleteAgent, agentConversations, talkToAgent, designAgent } from "@/lib/agents.functions";
 import { waList } from "@/lib/whatsapp.functions";
 import { AgentWizard } from "@/components/AgentWizard";
+import { AgentAvatar } from "@/components/AgentAvatar";
+import { setAgentSquad } from "@/lib/agent-squad.functions";
 
 export const Route = createFileRoute("/_authenticated/agentes")({
   head: () => ({ meta: [
@@ -34,7 +36,9 @@ function Page() {
   const { data } = useQuery({ queryKey: ["agents"], queryFn: () => list() });
   const { data: inst = [] } = useQuery({ queryKey: ["wa_instances"], queryFn: () => wa(), retry: 1 });
   const [edit, setEdit] = useState<A | null>(null);
-  const agents = (data?.agents ?? []) as any[];
+  const agents = ((data?.agents ?? []) as any[]).filter((a) => !a.squad);
+  const squad = useServerFn(setAgentSquad);
+  const move = async (a: any, to: "agts01" | "v2") => { await squad({ data: { id: a.id, squad: to } }); qc.invalidateQueries({ queryKey: ["agents"] }); toast.success(`${a.name} movido para ${to === "agts01" ? "AGTS - 01" : "Agentes V2"}`); };
   const save = useServerFn(saveAgent);
   const toggle = async (a: any) => { await save({ data: { ...a, ai_key: undefined, active: !a.active } }); qc.invalidateQueries({ queryKey: ["agents"] }); };
 
@@ -52,11 +56,12 @@ function Page() {
             <div key={a.id} className="rounded-lg border bg-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 font-bold">{a.avatar_url ? <img src={a.avatar_url} alt={a.name} className="h-full w-full object-cover" /> : a.name.slice(0, 2).toUpperCase()}</div><div><div className="font-semibold">{a.name}</div><div className="text-xs text-muted-foreground">{a.instance || "sem número"} · {a.ai_provider === "custom" ? "IA própria" : "IA nativa"}{a.training_mode ? " · treinamento ligado" : ""}</div></div></div>
+                  <div className="flex items-center gap-3"><AgentAvatar id={a.id} name={a.name} url={a.avatar_url} editable /><div><div className="font-semibold">{a.name}</div><div className="text-xs text-muted-foreground">{a.instance || "sem número"} · {a.ai_provider === "custom" ? "IA própria" : "IA nativa"}{a.training_mode ? " · treinamento ligado" : ""}</div></div></div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch checked={a.active} onCheckedChange={() => toggle(a)} aria-label="Ativar agente" />
                   <Button size="sm" variant="outline" onClick={() => setEdit({ ...a })}>Configurar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => move(a, "agts01")}>Mover p/ AGTS - 01</Button>
                   <Button size="sm" asChild><Link to="/agentes/$id" params={{ id: a.id }}>Abrir painel</Link></Button>
                 </div>
               </div>

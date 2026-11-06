@@ -16,6 +16,7 @@ import { Route as AuthenticatedAcessRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAgentesRouteImport } from './routes/_authenticated/agentes'
 import { Route as AuthenticatedAgentesV2RouteImport } from './routes/_authenticated/agentes-v2'
+import { Route as AuthenticatedAgts01RouteImport } from './routes/_authenticated/agts-01'
 import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
 import { Route as AuthenticatedArgosRouteImport } from './routes/_authenticated/argos'
 import { Route as AuthenticatedBlocosRouteImport } from './routes/_authenticated/blocos'
@@ -79,6 +80,11 @@ const AuthenticatedAgentesRoute = AuthenticatedAgentesRouteImport.update({
 const AuthenticatedAgentesV2Route = AuthenticatedAgentesV2RouteImport.update({
   id: '/agentes-v2',
   path: '/agentes-v2',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgts01Route = AuthenticatedAgts01RouteImport.update({
+  id: '/agts-01',
+  path: '/agts-01',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAprendizadoRoute =
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/agentes': typeof AuthenticatedAgentesRoute
   '/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/agts-01': typeof AuthenticatedAgts01Route
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
@@ -279,6 +286,7 @@ export interface FileRoutesByTo {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/agentes': typeof AuthenticatedAgentesRoute
   '/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/agts-01': typeof AuthenticatedAgts01Route
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/argos': typeof AuthenticatedArgosRoute
   '/blocos': typeof AuthenticatedBlocosRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/agentes': typeof AuthenticatedAgentesRoute
   '/_authenticated/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/_authenticated/agts-01': typeof AuthenticatedAgts01Route
   '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/_authenticated/argos': typeof AuthenticatedArgosRoute
   '/_authenticated/blocos': typeof AuthenticatedBlocosRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/agentes'
     | '/agentes-v2'
+    | '/agts-01'
     | '/aprendizado'
     | '/argos'
     | '/blocos'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/agentes'
     | '/agentes-v2'
+    | '/agts-01'
     | '/aprendizado'
     | '/argos'
     | '/blocos'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agendamentos'
     | '/_authenticated/agentes'
     | '/_authenticated/agentes-v2'
+    | '/_authenticated/agts-01'
     | '/_authenticated/aprendizado'
     | '/_authenticated/argos'
     | '/_authenticated/blocos'
@@ -525,6 +537,13 @@ declare module '@tanstack/react-router' {
       path: '/agentes-v2'
       fullPath: '/agentes-v2'
       preLoaderRoute: typeof AuthenticatedAgentesV2RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agts-01': {
+      id: '/_authenticated/agts-01'
+      path: '/agts-01'
+      fullPath: '/agts-01'
+      preLoaderRoute: typeof AuthenticatedAgts01RouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/aprendizado': {
@@ -738,6 +757,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAgentesRoute: typeof AuthenticatedAgentesRoute
   AuthenticatedAgentesV2Route: typeof AuthenticatedAgentesV2Route
+  AuthenticatedAgts01Route: typeof AuthenticatedAgts01Route
   AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
   AuthenticatedArgosRoute: typeof AuthenticatedArgosRoute
   AuthenticatedBlocosRoute: typeof AuthenticatedBlocosRoute
@@ -767,6 +787,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAgentesRoute: AuthenticatedAgentesRoute,
   AuthenticatedAgentesV2Route: AuthenticatedAgentesV2Route,
+  AuthenticatedAgts01Route: AuthenticatedAgts01Route,
   AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
   AuthenticatedArgosRoute: AuthenticatedArgosRoute,
   AuthenticatedBlocosRoute: AuthenticatedBlocosRoute,
