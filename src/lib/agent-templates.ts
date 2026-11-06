@@ -1,3 +1,4 @@
+import luciusAvatar from "@/assets/agents/lucius.jpg";
 export interface AgentTemplate {
   id: string;
   name: string;
@@ -98,7 +99,7 @@ export const BAT_AGENT_TEMPLATES: AgentTemplate[] = [
   },
   {
     id: "lucius", name: "Lucius Fox", codename: "B2B & Serviços Técnicos",
-    avatar_url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+    avatar_url: luciusAvatar,
     specialty: "Oficinas Mecânicas, Climatização, Construção e Autopeças",
     tagline: "Abordagem técnica e pragmática voltada a captação de clientes de emergência.",
     description: "Especialista em serviços pesados e técnicos. Foca na captação de clientes que buscam consertos e manutenções urgentes no Google.",
