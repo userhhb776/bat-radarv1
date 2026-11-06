@@ -182,7 +182,7 @@ export async function getKnownPhonesFromAllInstances(sb: SupabaseClient, userId:
         const raw = await response.json();
         const list = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
         const instances = [...new Set(list
-          .map((item) => String(item.name ?? item.instanceName ?? "").trim())
+          .map((item) => String(item["name"] ?? item["instanceName"] ?? "").trim())
           .filter((name) => name && canUse(userId, adminData === true, name)))];
         await Promise.all(instances.map(async (instance) => {
           try {
