@@ -3,11 +3,11 @@ import { isFromMeFlag } from "./wa-inbound.server";
 import { paceDelayMs, fillTemplate, splitBubbles, matchBtxRule, matchExistingTeamRule, normalizeGeneratedBtxRules, normalizeBtxRuleNumbering, matchPositiveBtxRule, matchPositiveReplyRule, sequenceReply, adaptGreeting, isEmailOrForwardRequest, openingMessagesFor, matchLimpMessage } from "./agents.server";
 
 describe("agentes", () => {
-  it("ritmo normal espera entre 15 e 40 segundos", () => {
-    expect(paceDelayMs("equilibrado", 0)).toBe(15000);
-    expect(paceDelayMs("equilibrado", 1)).toBe(40000);
+  it("ritmo normal espera entre 8 e 16 segundos", () => {
+    expect(paceDelayMs("equilibrado", 0)).toBe(8000);
+    expect(paceDelayMs("equilibrado", 1)).toBe(16000);
   });
-  it("ritmo ocupado espera até 85 segundos", () => { expect(paceDelayMs("calmo", 1)).toBe(85000); });
+  it("ritmo calmo espera no máximo 20 segundos (abaixo do limite do webhook)", () => { expect(paceDelayMs("calmo", 1)).toBe(20000); });
   it("preenche {nome} com o nome curto da empresa", () => {
     expect(fillTemplate("Vi a {nome} em {cidade}", { name: "Clínica Sorriso - Centro", city: "Rio Branco" })).toBe("Vi a Clínica Sorriso em Rio Branco");
   });

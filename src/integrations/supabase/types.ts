@@ -416,6 +416,48 @@ export type Database = {
           },
         ]
       }
+      bo_contacts: {
+        Row: {
+          agent: string
+          created_at: string
+          id: string
+          name: string
+          notes: string
+          phone: string
+          spent: number
+          stage: string
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent?: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string
+          phone?: string
+          spent?: number
+          stage?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string
+          phone?: string
+          spent?: number
+          stage?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           block_id: string | null
