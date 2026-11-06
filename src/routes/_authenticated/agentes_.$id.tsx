@@ -39,6 +39,7 @@ function Cockpit() {
       <div className="mx-auto max-w-5xl space-y-4 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Link to="/agentes" className="text-muted-foreground"><ArrowLeft className="h-5 w-5" /></Link>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 font-bold">{a.avatar_url ? <img src={a.avatar_url} alt={a.name} className="h-full w-full object-cover" /> : a.name.slice(0, 2).toUpperCase()}</div>
           <h1 className="text-2xl font-bold">{a.name}</h1>
           <span className={`rounded-full px-2 py-0.5 text-xs ${a.active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{a.active ? "trabalhando" : "desligado"}</span>
           <span className="text-xs text-muted-foreground">{a.instance || "sem número"}</span>
