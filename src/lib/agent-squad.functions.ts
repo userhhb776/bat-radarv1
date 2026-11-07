@@ -17,7 +17,7 @@ export const setAgentAvatar = createServerFn({ method: "POST" })
 /** Move o agente entre as abas: Agentes (null), AGTS - 01 ou Agentes V2. */
 export const setAgentSquad = createServerFn({ method: "POST" })
   .middleware([requireApprovedAccount])
-  .inputValidator((d: unknown) => z.object({ id, squad: z.enum(["agts01", "v2"]).nullable() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ id, squad: z.enum(["agts01", "v2", "v3"]).nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await (context.supabase as any).from("agents").update({ squad: data.squad }).eq("id", data.id);
     if (error) throw new Error(error.message);

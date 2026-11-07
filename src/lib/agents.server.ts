@@ -756,6 +756,11 @@ export const FACTORY = { nota_minima: 3.8, min_reviews: 5, min_photos: 3 };
 
 /** Abordagem inicial: usa a situação de abertura do B-T6X (variação sorteada) ou a 1ª etapa do roteiro. */
 export function openingFor(a: Agent) { return openingMessagesFor(a)[0] ?? ""; }
+/** Áudio da abordagem inicial (regra de abertura do B-T6X com áudio). Permite abrir só com áudio. */
+export function openingAudioFor(a: Agent) {
+  const r = (a.btx?.rules ?? []).find((x) => /abord|inic|primeir|abertura/i.test(x.when ?? "") && x.audio_id);
+  return r?.audio_id ?? "";
+}
 
 /** Cidades permitidas: só as dos estados marcados (uma cidade pedida fora deles é ignorada). */
 export async function citiesFor(m: Miner, city?: unknown) {
@@ -782,9 +787,12 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const { places } = await import("@/lib/jarvis.server");
   let found: Awaited<ReturnType<typeof places>> = [];
   for (const c of cities) { try { found.push(...(await places(niche, c, FACTORY.nota_minima))); } catch { /* segue */ } if (found.length > limit * 4) break; }
-  found = found.filter((x) => x.phone && (!x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website)));
+  // Agentes V3 vendem outros serviços: site não importa, o que vale é engajamento (avaliações e fotos).
+  const v3 = (a as any).squad === "v3";
+  found = found.filter((x) => x.phone && (v3 || !x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website)));
   const before = found.length;
-  found = found.filter((x) => x.open && x.reviews_count >= FACTORY.min_reviews && x.photos >= FACTORY.min_photos);
+  found = found.filter((x) => x.open && x.reviews_count >= (v3 ? (m.min_reviews ?? 30) : FACTORY.min_reviews) && x.photos >= (v3 ? 8 : FACTORY.min_photos));
+  if (v3) found.sort((p, q) => q.reviews_count - p.reviews_count);
   const weak = before - found.length;
   const ids = found.map((x) => x.place_id);
   const [{ data: mine }, { data: owner }] = await Promise.all([
@@ -833,7 +841,7 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
     if (trows.length) await sb.from("agent_leads").insert(trows as any);
     return { novas: fresh.length, teste: true };
   }
-  const approach = !!m.auto_approach && !!a.instance && !!openingFor(a);
+  const approach = !!m.auto_approach && !!a.instance && !!(openingFor(a) || openingAudioFor(a));
   let t = Date.now() + 2 * 60000;
   const g0 = m.gap_min ?? 6, g1 = Math.max(g0, m.gap_max ?? 15);
   const rows = fresh.map(({ photos, open: _o, ...x }) => { t += (g0 + Math.random() * (g1 - g0)) * 60000; return { ...x, photos, qualification: qual({ ...x, photos, open: true } as any), user_id: a.user_id, agent_id: a.id, status: approach ? "fila" : "novo", send_at: approach ? new Date(t).toISOString() : null }; });
@@ -917,14 +925,24 @@ export async function processAgentQueue(sb: SupabaseClient) {
     const { data: a } = await sb.from("agents").select("*").eq("id", l.agent_id).single();
     const ag = a as any as Agent | null;
     const openingBlocks = ag ? openingMessagesFor(ag) : [];
-    if (!ag || !ag.instance || !openingBlocks.length) { await sb.from("agent_leads").update({ status: "fila" }).eq("id", l.id); continue; }
+    const openAudio = ag ? openingAudioFor(ag) : "";
+    if (!ag || !ag.instance || (!openingBlocks.length && !openAudio)) { await sb.from("agent_leads").update({ status: "fila" }).eq("id", l.id); continue; }
     sentToday.set(l.agent_id, sentToday.get(l.agent_id)! + 1);
     try {
       const { evoSend } = await import("@/lib/evolution.server");
       const texts = openingBlocks.map((block) => adaptGreeting(fillTemplate(block, l)));
-      await evoSend(ag.instance, l.phone, texts, openGapMs(ag));
+      if (texts.length) await evoSend(ag.instance, l.phone, texts, openGapMs(ag));
       const phone = digits(l.phone);
       for (const b of texts) await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: b });
+      if (openAudio) {
+        const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", openAudio).single();
+        if ((au as any)?.data) {
+          if (texts.length) await new Promise((r) => setTimeout(r, Math.min(openGapMs(ag)(), 20000)));
+          const { evoSendAudio } = await import("@/lib/evolution.server");
+          await evoSendAudio(ag.instance, l.phone, (au as any).data, 4000 + Math.random() * 4000);
+          await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: `🎤 ${(au as any).title ?? "áudio"}` });
+        }
+      }
       await sb.from("agent_leads").update({ status: "abordado" }).eq("id", l.id);
       await logEvent(sb, ag, "abordou", `Mandou abordagem para ${l.name}`);
       sent++;

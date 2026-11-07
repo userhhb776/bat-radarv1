@@ -2,8 +2,9 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountAccess } from "@/lib/access.functions";
-import { Search, KanbanSquare, LogOut, Crosshair, FilePenLine, Contact, ScrollText, Inbox, Sunrise, MessageCircle, Layers, Megaphone, CalendarClock, Send, Users, MessagesSquare, BookOpen, Brain, Bot, Gauge } from "lucide-react";
+import { Search, KanbanSquare, LogOut, Crosshair, FilePenLine, Contact, ScrollText, Inbox, Sunrise, MessageCircle, Layers, Megaphone, CalendarClock, Send, Users, MessagesSquare, BookOpen, Brain, Bot, Gauge, LayoutDashboard, Rocket } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
+import { ArgosBubble } from "@/components/ArgosBubble";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { pingActivity } from "@/lib/push-client";
 import logo from "@/assets/batradar-logo.png";
@@ -14,6 +15,9 @@ import {
 } from "@/components/ui/sidebar";
 
 const groups = [
+  { label: "Central", items: [
+    { title: "Início", url: "/inicio", icon: LayoutDashboard },
+  ] },
   { label: "Prospecção", items: [
     { title: "Leads do dia", url: "/diarios", icon: Sunrise },
     { title: "Buscar", url: "/buscar", icon: Search },
@@ -29,6 +33,7 @@ const groups = [
     { title: "Agentes", url: "/agentes", icon: Bot },
     { title: "AGTS - 01", url: "/agts-01", icon: Users },
     { title: "Agentes V2", url: "/agentes-v2", icon: Brain },
+    { title: "Agentes V3", url: "/agentes-v3", icon: Rocket },
   ] },
   { label: "Vendas", items: [
     { title: "Pipeline", url: "/pipeline", icon: KanbanSquare },
@@ -112,6 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <InstallPrompt />
+      <ArgosBubble />
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">

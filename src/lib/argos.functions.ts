@@ -20,12 +20,33 @@ const TOOLS: Array<{ name: string; description: string; properties: Record<strin
   { name: "listar_agentes", description: "Lista os AGENTES de vendas (id, nome, ativo, número, missão).", properties: {} },
   { name: "criar_agente", description: "Cria um AGENTE de vendas automático (não é campanha). Pode já definir missão, oferta, cliente ideal, regras, jeito de falar, nicho/cidade do minerador e o prompt B-T6X.", properties: { nome: { type: "string" }, missao: { type: "string" }, oferta: { type: "string" }, cliente_ideal: { type: "string" }, regras: { type: "string" }, estilo: { type: "string" }, instancia: { type: "string" }, nicho: { type: "string" }, cidade: { type: "string" }, btx_prompt: { type: "string" } }, required: ["nome"] },
   { name: "configurar_agente", description: "Altera um agente existente (só os campos enviados). ativo liga/desliga; auto_resposta liga/desliga respostas.", properties: { agente_id: { type: "string" }, nome: { type: "string" }, missao: { type: "string" }, oferta: { type: "string" }, cliente_ideal: { type: "string" }, regras: { type: "string" }, estilo: { type: "string" }, instancia: { type: "string" }, ativo: { type: "boolean" }, auto_resposta: { type: "boolean" }, btx_prompt: { type: "string" } }, required: ["agente_id"] },
+  { name: "metricas_agentes", description: "Desempenho de cada agente: abordados, responderam, taxa de resposta, fila e erros.", properties: {} },
+  { name: "minerar_agente", description: "Manda um agente minerar empresas agora (usa nicho/estados dele se não informar).", properties: { agente_id: { type: "string" }, nicho: { type: "string" }, limite: { type: "number" } }, required: ["agente_id"] },
 ];
 
 async function agentAction(sb: any, userId: string, name: string, p: Record<string, any>) {
   if (name === "listar_agentes") {
     const { data } = await sb.from("agents").select("id,name,active,auto_reply,instance,mission").order("created_at");
     return data ?? [];
+  }
+  if (name === "metricas_agentes") {
+    const [{ data: ags }, { data: ls }, { data: ins }] = await Promise.all([
+      sb.from("agents").select("id,name,active,squad"),
+      sb.from("agent_leads").select("agent_id,status"),
+      sb.from("agent_messages").select("agent_id,phone").eq("direction", "in"),
+    ]);
+    return (ags ?? []).map((g: any) => {
+      const mine = (ls ?? []).filter((l: any) => l.agent_id === g.id);
+      const ab = mine.filter((l: any) => l.status === "abordado").length;
+      const resp = new Set((ins ?? []).filter((m: any) => m.agent_id === g.id).map((m: any) => m.phone)).size;
+      return { agente: g.name, aba: g.squad ?? "agentes", ativo: g.active, abordados: ab, responderam: resp, taxa: ab ? Math.round((resp / ab) * 100) + "%" : "-", fila: mine.filter((l: any) => l.status === "fila").length, erros: mine.filter((l: any) => l.status === "erro" || l.status === "revisao").length };
+    });
+  }
+  if (name === "minerar_agente") {
+    const { data: ag } = await sb.from("agents").select("*").eq("id", p["agente_id"]).maybeSingle();
+    if (!ag) return { erro: "Agente não encontrado." };
+    const { mineForAgent } = await import("@/lib/agents.server");
+    return await mineForAgent(sb, ag, { niche: p["nicho"], limit: p["limite"] });
   }
   const map: Record<string, string> = { nome: "name", missao: "mission", oferta: "offer", cliente_ideal: "ideal_client", regras: "rules", estilo: "style", instancia: "instance", ativo: "active", auto_resposta: "auto_reply" };
   const row: Record<string, unknown> = {};
@@ -45,6 +66,7 @@ async function agentAction(sb: any, userId: string, name: string, p: Record<stri
 }
 
 const SYSTEM = `Você é ARGOS, a inteligência própria do painel BatRadar do Antonio. Fala como o Jarvis do Homem de Ferro: educado, confiante, levemente espirituoso, chamando-o de "senhor" às vezes.
+Você tem acesso total ao painel: lê, analisa, cria, edita e comanda tudo pelas ferramentas. Para análise de agentes use metricas_agentes. Ações destrutivas (apagar, disparar em massa) só com pedido explícito.
 AGENTE ≠ CAMPANHA: quando pedirem um "agente", use criar_agente/configurar_agente/listar_agentes — nunca crie bloco ou campanha para isso.
 Regras: respostas CURTAS e precisas (1-3 frases), português do Brasil. Quando pedirem algo, EXECUTE usando as ferramentas — não peça confirmação para leituras ou buscas. Para criar campanhas, descubra ids com listar_blocos/listar_scripts/listar_instancias antes. Nunca invente ids ou números. Se faltar um dado essencial, pergunte em uma frase. Hoje é ${"{HOJE}"}.`;
 
