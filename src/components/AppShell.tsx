@@ -117,6 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <InstallPrompt />
+      <ArgosBubble />
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
