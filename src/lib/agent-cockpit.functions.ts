@@ -273,16 +273,26 @@ export const startTestV2 = createServerFn({ method: "POST" })
     if (!admin) throw new Error("Teste V2 é exclusivo do administrador.");
     const a = await loadAgent(context.supabase, data.id);
     if (!a.instance) throw new Error("Escolha o número do agente primeiro.");
-    const { openingMessagesFor, fillTemplate, adaptGreeting, openGapMs } = await import("@/lib/agents.server");
+    const { openingMessagesFor, openingAudioFor, fillTemplate, adaptGreeting, openGapMs } = await import("@/lib/agents.server");
     const blocks = openingMessagesFor({ ...a, miner: { ...(a.miner ?? {}), btx_opening: true } } as any);
-    if (!blocks.length) throw new Error("Configure uma mensagem de abordagem antes.");
+    const audioId = openingAudioFor(a as any);
+    if (!blocks.length && !audioId) throw new Error("Configure uma mensagem de abordagem antes.");
     const phone = "5568992316302";
     const tail = phone.replace(/\D/g, "").slice(-8);
     await (context.supabase as any).from("agent_pauses").delete().eq("agent_id", a.id).like("phone", `%${tail}`);
     await (context.supabase as any).from("agents").update({ active: true, training_mode: true, training_phone: phone, miner: { ...(a.miner ?? {}), md_teste: false } }).eq("id", a.id);
     const { evoSend } = await import("@/lib/evolution.server");
     const texts = blocks.map((block) => adaptGreeting(fillTemplate(block, { name: "Empresa Teste", city: "Rio Branco" } as any)));
-    await evoSend(a.instance, phone, texts, openGapMs(a));
+    if (texts.length) await evoSend(a.instance, phone, texts, openGapMs(a));
+    if (audioId) {
+      const { data: au } = await (context.supabase as any).from("agent_audios").select("title,data").eq("id", audioId).single();
+      if (au?.data) {
+        const { evoSendAudio } = await import("@/lib/evolution.server");
+        await new Promise((r) => setTimeout(r, 4000));
+        await evoSendAudio(a.instance, phone, au.data);
+        texts.push(`🎤 ${au.title ?? "áudio"}`);
+      }
+    }
     for (const b of texts) await (context.supabase as any).from("agent_messages").insert({ user_id: context.userId, agent_id: a.id, phone, contact_name: "TESTE V2", direction: "out", body: b });
     return { ok: true };
   });

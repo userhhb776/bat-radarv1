@@ -64,8 +64,9 @@ export function ArgosBubble() {
         </div>
       )}
       <button onClick={() => setOpen((o) => !o)} aria-label="Abrir Argos"
-        className="fixed bottom-4 right-4 z-50 grid h-14 w-14 place-items-center rounded-full border-2 border-primary bg-card text-primary shadow-xl transition hover:scale-105">
-        {open ? <X className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+        className="fixed bottom-4 right-4 z-50 grid h-14 w-14 place-items-center overflow-hidden rounded-full border-2 border-primary bg-card text-primary shadow-xl ring-4 ring-primary/20 transition hover:scale-105">
+        {open ? <X className="h-6 w-6" /> : <img src="/agents/argos.jpg" alt="Argos" width={56} height={56} className="h-full w-full object-cover" />}
+        {!open && <span className="absolute right-0.5 top-0.5 h-3 w-3 animate-pulse rounded-full border-2 border-card bg-primary" />}
       </button>
     </>
   );
