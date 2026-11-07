@@ -937,7 +937,7 @@ export async function processAgentQueue(sb: SupabaseClient) {
       if (openAudio) {
         const { data: au } = await sb.from("agent_audios").select("title,data").eq("id", openAudio).single();
         if ((au as any)?.data) {
-          if (texts.length) await new Promise((r) => setTimeout(r, Math.min(openGapMs(ag), 20000)));
+          if (texts.length) await new Promise((r) => setTimeout(r, Math.min(openGapMs(ag)(), 20000)));
           const { evoSendAudio } = await import("@/lib/evolution.server");
           await evoSendAudio(ag.instance, l.phone, (au as any).data, 4000 + Math.random() * 4000);
           await sb.from("agent_messages").insert({ user_id: ag.user_id, agent_id: ag.id, phone, contact_name: l.name, direction: "out", body: `🎤 ${(au as any).title ?? "áudio"}` });
