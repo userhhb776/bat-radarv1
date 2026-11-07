@@ -153,7 +153,7 @@ function Page() {
               const top = Math.max(1, funnel[0][1]);
               return (
                 <div key={n} className="mb-3">
-                  <div className="flex justify-between text-xs"><span>{n}</span><span className="tabular-nums">{v}{i > 0 && <span className="ml-1 text-muted-foreground">({pct(v, funnel[i - 1][1])})</span>}</span></div>
+                  <div className="flex justify-between text-xs"><span>{n}</span><span className="tabular-nums">{v}{i > 0 && <span className="ml-1 text-muted-foreground">({pct(v, funnel[i - 1]?.[1] ?? 0)})</span>}</span></div>
                   <div className="mt-1 h-2.5 rounded-full bg-muted"><div className="h-2.5 rounded-full bg-gradient-to-r from-primary to-primary/50" style={{ width: `${Math.max(2, (v / top) * 100)}%` }} /></div>
                 </div>
               );
