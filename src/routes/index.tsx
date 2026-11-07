@@ -142,7 +142,7 @@ function Landing() {
           <div className="pointer-events-none absolute inset-0 bg-grid opacity-60" />
           <h2 className="relative font-display text-3xl font-bold uppercase sm:text-4xl">Seu próximo cliente já está no mapa</h2>
           <p className="relative mx-auto mt-3 max-w-md text-ink-foreground/70">Entre e veja as empresas de hoje esperando a sua mensagem.</p>
-          <Button asChild size="lg" className="glow-primary relative mt-8 w-full sm:w-auto"><Link to="/buscar">Abrir o painel <ArrowRight className="h-4 w-4" /></Link></Button>
+          <Button asChild size="lg" className="glow-primary relative mt-8 w-full sm:w-auto"><Link to="/inicio">Abrir o painel <ArrowRight className="h-4 w-4" /></Link></Button>
         </div>
       </section>
 
