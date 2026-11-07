@@ -5,6 +5,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Res
 import { AppShell } from "@/components/AppShell";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/batradar-logo.png";
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   head: () => ({ meta: [
@@ -94,16 +95,38 @@ function Page() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl space-y-4 p-4">
-        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/15 via-card to-card p-5">
-          <Radar className="absolute -right-6 -top-6 h-40 w-40 text-primary/10" />
-          <p className="text-xs uppercase tracking-[0.3em] text-primary">Central BatRadar</p>
-          <h1 className="mt-1 text-3xl font-bold">Visão da noite</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{d?.active ?? 0} agentes ligados · {d?.agents.length ?? 0} no esquadrão · atualiza a cada minuto</p>
+        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card p-5 glow-primary">
+          <div className="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_right,black,transparent_75%)]" />
+          <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
+            <div className="animate-rise text-center sm:text-left">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-primary">
+                <span className="relative h-1.5 w-1.5"><span className="animate-ping-soft absolute inset-0 rounded-full bg-primary" /><span className="absolute inset-0 rounded-full bg-primary" /></span>
+                Varredura ativa
+              </span>
+              <h1 className="mt-3 font-display text-3xl font-bold uppercase sm:text-4xl">Central <span className="text-primary">BatRadar</span></h1>
+              <p className="mt-1 text-sm text-muted-foreground">{d?.active ?? 0} agentes ligados · {d?.agents.length ?? 0} no esquadrão · {d?.fila ?? 0} na fila</p>
+            </div>
+            <div className="relative aspect-square w-44 shrink-0 sm:w-52">
+              <div className="absolute inset-0 rounded-full border border-primary/30" />
+              <div className="absolute inset-6 rounded-full border border-primary/20" />
+              <div className="absolute inset-12 rounded-full border border-primary/15" />
+              <div className="absolute inset-x-0 top-1/2 h-px bg-primary/15" />
+              <div className="absolute inset-y-0 left-1/2 w-px bg-primary/15" />
+              <div className="animate-radar absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,color-mix(in_oklab,var(--primary)_40%,transparent)_50deg,transparent_60deg)]" />
+              {[["top-[20%] left-[66%]", "0s"], ["top-[62%] left-[22%]", "0.8s"], ["top-[72%] left-[70%]", "1.6s"], ["top-[30%] left-[28%]", "2.2s"]].map(([p, dl]) => (
+                <span key={p} className={`absolute ${p} h-2 w-2`}>
+                  <span className="animate-ping-soft absolute inset-0 rounded-full bg-primary" style={{ animationDelay: dl }} />
+                  <span className="absolute inset-0 rounded-full bg-primary" />
+                </span>
+              ))}
+              <img src={logo} alt="" width={1024} height={1024} className="animate-float absolute inset-[34%] object-contain drop-shadow-[0_0_12px_var(--primary)]" />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          {cards.map((c) => (
-            <div key={c.t} className="group rounded-2xl border bg-card p-4 transition hover:border-primary/60">
+          {cards.map((c, idx) => (
+            <div key={c.t} className="animate-rise group rounded-2xl border bg-card/80 p-4 backdrop-blur transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_0_30px_-10px_var(--primary)]" style={{ animationDelay: `${idx * 80}ms` }}>
               <div className="flex items-center justify-between text-xs text-muted-foreground">{c.t}<span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10"><c.i className="h-4 w-4 text-primary" /></span></div>
               <div className="mt-2 text-3xl font-bold tabular-nums">{c.v}</div>
               <div className="text-[11px] text-muted-foreground">{c.s}</div>

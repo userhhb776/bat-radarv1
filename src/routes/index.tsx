@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Search, Radar, Layers, Send, KanbanSquare, Brain, BellRing, ArrowRight, Check, MapPin, Star, GlobeLock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/batradar-logo.png";
@@ -16,6 +18,15 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
+
+function useSignedInRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/inicio", replace: true });
+    });
+  }, [navigate]);
+}
 
 const steps = [
   { icon: Search, t: "Encontre", d: "Busque por nicho, cidade e estado. Veja quem não tem site ou usa só Instagram e WhatsApp." },
@@ -40,6 +51,7 @@ const sample = [
 ];
 
 function Landing() {
+  useSignedInRedirect();
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink text-ink-foreground">
       <header className="sticky top-0 z-20 border-b border-ink-foreground/10 bg-ink/80 backdrop-blur">
@@ -142,7 +154,7 @@ function Landing() {
           <div className="pointer-events-none absolute inset-0 bg-grid opacity-60" />
           <h2 className="relative font-display text-3xl font-bold uppercase sm:text-4xl">Seu próximo cliente já está no mapa</h2>
           <p className="relative mx-auto mt-3 max-w-md text-ink-foreground/70">Entre e veja as empresas de hoje esperando a sua mensagem.</p>
-          <Button asChild size="lg" className="glow-primary relative mt-8 w-full sm:w-auto"><Link to="/buscar">Abrir o painel <ArrowRight className="h-4 w-4" /></Link></Button>
+          <Button asChild size="lg" className="glow-primary relative mt-8 w-full sm:w-auto"><Link to="/inicio">Abrir o painel <ArrowRight className="h-4 w-4" /></Link></Button>
         </div>
       </section>
 

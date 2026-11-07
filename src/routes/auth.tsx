@@ -33,7 +33,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/buscar", replace: true });
+      if (data.session) navigate({ to: "/inicio", replace: true });
     });
   }, [navigate]);
 
@@ -44,14 +44,14 @@ function AuthPage() {
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { data: { name: name.trim() } } });
         if (error) throw error;
-        if (data.session) { navigate({ to: "/buscar", replace: true }); return; }
+        if (data.session) { navigate({ to: "/inicio", replace: true }); return; }
         setConfirmation(true);
         return;
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       await supabase.rpc("record_access", { _kind: "login", _page: "/auth" });
-      navigate({ to: "/buscar", replace: true });
+      navigate({ to: "/inicio", replace: true });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

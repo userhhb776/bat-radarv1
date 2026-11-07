@@ -68,7 +68,7 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <Link to="/" className="flex items-center gap-2 px-1 py-1 font-display font-semibold">
+        <Link to="/inicio" className="flex items-center gap-2 px-1 py-1 font-display font-semibold">
           <img src={logo} alt="" width={1024} height={1024} className="h-8 w-8 shrink-0 object-contain" />
           <span className="truncate group-data-[collapsible=icon]:hidden">BatRadar 5.7</span>
         </Link>

@@ -114,6 +114,8 @@
 @keyframes radar-sweep { to { transform: rotate(360deg); } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes ping-soft { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes float-y { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@utility animate-float { animation: float-y 3.2s ease-in-out infinite; }
 @utility animate-radar { animation: radar-sweep 4s linear infinite; }
 @utility animate-rise { animation: rise-in .7s cubic-bezier(.2,.7,.2,1) both; }
 @utility animate-ping-soft { animation: ping-soft 2.4s ease-out infinite; }
