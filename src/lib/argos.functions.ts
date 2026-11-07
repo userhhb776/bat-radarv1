@@ -83,7 +83,7 @@ export const argosChat = createServerFn({ method: "POST" })
     const convo: any[] = [{ role: "system", content: SYSTEM.replace("{HOJE}", new Date().toLocaleString("pt-BR", { timeZone: "America/Rio_Branco" })) }, ...data.messages];
     const actions: string[] = [];
     for (let step = 0; step < 8; step++) {
-      const res = await fetch("https://ollama.com/api/chat", {
+      const res = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: MODEL, stream: false, messages: convo, tools: TOOLS.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: { type: "object", properties: t.properties, required: t.required ?? [] } } })) }),

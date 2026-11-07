@@ -211,7 +211,7 @@ async function ask(agent: any, prompt: string) {
   const fallback = (await (await import("@/lib/service-config.server")).getOllamaKey()) ?? "";
   const key = agent.ai_provider === "custom" && agent.ai_key ? agent.ai_key : fallback;
   if (!key) throw new Error("Chave de IA não configurada.");
-  const res = await fetch("https://ollama.com/api/chat", {
+  const res = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
     method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: agent.model || "gpt-oss:120b", stream: false, messages: [{ role: "user", content: prompt }] }),
   });
