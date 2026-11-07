@@ -109,7 +109,7 @@ Escolha rule_index com o número da situação mais adequada, ou null se nenhuma
 notify_owner=true para interesse comercial real, preço, fechamento ou pedido de humano. stop=true somente quando o cliente pedir claramente para encerrar/parar contato.
 confidence deve refletir sua certeza entre 0 e 1. Retorne somente o objeto no formato exigido.`;
   try {
-    const response = await fetch("https://ollama.com/api/chat", {
+    const response = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(12000),
@@ -144,7 +144,7 @@ confidence deve refletir sua certeza entre 0 e 1. Retorne somente o objeto no fo
 async function llm(a: Agent, fallbackKey: string, messages: any[], tools: Tool[]) {
   const key = a.ai_provider === "custom" && a.ai_key ? a.ai_key : fallbackKey;
   if (!key) throw new Error("Chave de IA não configurada.");
-  const res = await fetch("https://ollama.com/api/chat", {
+  const res = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: a.model || "gpt-oss:120b", stream: false, messages, tools: tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: { type: "object", properties: t.properties, required: t.required ?? [] } } })) }),

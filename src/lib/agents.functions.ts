@@ -81,7 +81,7 @@ export const designAgent = createServerFn({ method: "POST" })
     const key = await (await import("@/lib/service-config.server")).getOllamaKey();
     if (!key) throw new Error("IA não configurada.");
     const system = `Você monta agentes de vendas do BatRadar conversando com o dono, em pt-BR, curto e direto. A cada resposta devolva SOMENTE um JSON: {"reply":"sua fala curta (pergunte o que faltar)","agent":{"name":"","mission":"","offer":"","ideal_client":"","rules":"","auto_reply":true}}. Preencha o agente com tudo que já sabe, mantendo o que já existe e aplicando as mudanças pedidas. As regras devem fazer o agente falar como gente, nunca como robô. Agente atual: ${JSON.stringify(data.current ?? {})}`;
-    const res = await fetch("https://ollama.com/api/chat", {
+    const res = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: "gpt-oss:120b", stream: false, format: "json", messages: [{ role: "system", content: system }, ...data.messages] }),

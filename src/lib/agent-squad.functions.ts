@@ -100,7 +100,7 @@ export const simulateV2 = createServerFn({ method: "POST" })
     const key = await (await import("@/lib/service-config.server")).getOllamaKey();
     if (!key) throw new Error("IA não configurada.");
     const system = `Você é ${data.name}, uma pessoa real conversando no WhatsApp com um cliente (o usuário). Siga à risca:\n${personaToRules(data.persona)}\nResponda só a sua fala, em pt-BR, sem aspas.`;
-    const res = await fetch("https://ollama.com/api/chat", {
+    const res = await (await import("@/lib/ai-chat.server")).aiFetch("https://ollama.com/api/chat", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: "gpt-oss:120b", stream: false, messages: [{ role: "system", content: system }, ...data.messages] }),
