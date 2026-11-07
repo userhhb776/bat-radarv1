@@ -16,6 +16,7 @@ import { Route as AuthenticatedAcessRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgendamentosRouteImport } from './routes/_authenticated/agendamentos'
 import { Route as AuthenticatedAgentesRouteImport } from './routes/_authenticated/agentes'
 import { Route as AuthenticatedAgentesV2RouteImport } from './routes/_authenticated/agentes-v2'
+import { Route as AuthenticatedAgentesV3RouteImport } from './routes/_authenticated/agentes-v3'
 import { Route as AuthenticatedAgts01RouteImport } from './routes/_authenticated/agts-01'
 import { Route as AuthenticatedAprendizadoRouteImport } from './routes/_authenticated/aprendizado'
 import { Route as AuthenticatedArgosRouteImport } from './routes/_authenticated/argos'
@@ -28,6 +29,7 @@ import { Route as AuthenticatedCotacoesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedDiariosRouteImport } from './routes/_authenticated/diarios'
 import { Route as AuthenticatedExternosRouteImport } from './routes/_authenticated/externos'
+import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
 import { Route as AuthenticatedManualRouteImport } from './routes/_authenticated/manual'
 import { Route as AuthenticatedMeuWhatsappRouteImport } from './routes/_authenticated/meu-whatsapp'
 import { Route as AuthenticatedPapaLeadRouteImport } from './routes/_authenticated/papa-lead'
@@ -80,6 +82,11 @@ const AuthenticatedAgentesRoute = AuthenticatedAgentesRouteImport.update({
 const AuthenticatedAgentesV2Route = AuthenticatedAgentesV2RouteImport.update({
   id: '/agentes-v2',
   path: '/agentes-v2',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgentesV3Route = AuthenticatedAgentesV3RouteImport.update({
+  id: '/agentes-v3',
+  path: '/agentes-v3',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAgts01Route = AuthenticatedAgts01RouteImport.update({
@@ -141,6 +148,11 @@ const AuthenticatedDiariosRoute = AuthenticatedDiariosRouteImport.update({
 const AuthenticatedExternosRoute = AuthenticatedExternosRouteImport.update({
   id: '/externos',
   path: '/externos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInicioRoute = AuthenticatedInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManualRoute = AuthenticatedManualRouteImport.update({
@@ -248,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/agentes': typeof AuthenticatedAgentesRoute
   '/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/agentes-v3': typeof AuthenticatedAgentesV3Route
   '/agts-01': typeof AuthenticatedAgts01Route
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/argos': typeof AuthenticatedArgosRoute
@@ -260,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
+  '/inicio': typeof AuthenticatedInicioRoute
   '/manual': typeof AuthenticatedManualRoute
   '/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
@@ -286,6 +300,7 @@ export interface FileRoutesByTo {
   '/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/agentes': typeof AuthenticatedAgentesRoute
   '/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/agentes-v3': typeof AuthenticatedAgentesV3Route
   '/agts-01': typeof AuthenticatedAgts01Route
   '/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/argos': typeof AuthenticatedArgosRoute
@@ -298,6 +313,7 @@ export interface FileRoutesByTo {
   '/crm': typeof AuthenticatedCrmRoute
   '/diarios': typeof AuthenticatedDiariosRoute
   '/externos': typeof AuthenticatedExternosRoute
+  '/inicio': typeof AuthenticatedInicioRoute
   '/manual': typeof AuthenticatedManualRoute
   '/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/papa-lead': typeof AuthenticatedPapaLeadRoute
@@ -326,6 +342,7 @@ export interface FileRoutesById {
   '/_authenticated/agendamentos': typeof AuthenticatedAgendamentosRoute
   '/_authenticated/agentes': typeof AuthenticatedAgentesRoute
   '/_authenticated/agentes-v2': typeof AuthenticatedAgentesV2Route
+  '/_authenticated/agentes-v3': typeof AuthenticatedAgentesV3Route
   '/_authenticated/agts-01': typeof AuthenticatedAgts01Route
   '/_authenticated/aprendizado': typeof AuthenticatedAprendizadoRoute
   '/_authenticated/argos': typeof AuthenticatedArgosRoute
@@ -338,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRoute
   '/_authenticated/diarios': typeof AuthenticatedDiariosRoute
   '/_authenticated/externos': typeof AuthenticatedExternosRoute
+  '/_authenticated/inicio': typeof AuthenticatedInicioRoute
   '/_authenticated/manual': typeof AuthenticatedManualRoute
   '/_authenticated/meu-whatsapp': typeof AuthenticatedMeuWhatsappRoute
   '/_authenticated/papa-lead': typeof AuthenticatedPapaLeadRoute
@@ -366,6 +384,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/agentes'
     | '/agentes-v2'
+    | '/agentes-v3'
     | '/agts-01'
     | '/aprendizado'
     | '/argos'
@@ -378,6 +397,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
+    | '/inicio'
     | '/manual'
     | '/meu-whatsapp'
     | '/papa-lead'
@@ -404,6 +424,7 @@ export interface FileRouteTypes {
     | '/agendamentos'
     | '/agentes'
     | '/agentes-v2'
+    | '/agentes-v3'
     | '/agts-01'
     | '/aprendizado'
     | '/argos'
@@ -416,6 +437,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/diarios'
     | '/externos'
+    | '/inicio'
     | '/manual'
     | '/meu-whatsapp'
     | '/papa-lead'
@@ -443,6 +465,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agendamentos'
     | '/_authenticated/agentes'
     | '/_authenticated/agentes-v2'
+    | '/_authenticated/agentes-v3'
     | '/_authenticated/agts-01'
     | '/_authenticated/aprendizado'
     | '/_authenticated/argos'
@@ -455,6 +478,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/diarios'
     | '/_authenticated/externos'
+    | '/_authenticated/inicio'
     | '/_authenticated/manual'
     | '/_authenticated/meu-whatsapp'
     | '/_authenticated/papa-lead'
@@ -539,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgentesV2RouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agentes-v3': {
+      id: '/_authenticated/agentes-v3'
+      path: '/agentes-v3'
+      fullPath: '/agentes-v3'
+      preLoaderRoute: typeof AuthenticatedAgentesV3RouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agts-01': {
       id: '/_authenticated/agts-01'
       path: '/agts-01'
@@ -621,6 +652,13 @@ declare module '@tanstack/react-router' {
       path: '/externos'
       fullPath: '/externos'
       preLoaderRoute: typeof AuthenticatedExternosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inicio': {
+      id: '/_authenticated/inicio'
+      path: '/inicio'
+      fullPath: '/inicio'
+      preLoaderRoute: typeof AuthenticatedInicioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manual': {
@@ -757,6 +795,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendamentosRoute: typeof AuthenticatedAgendamentosRoute
   AuthenticatedAgentesRoute: typeof AuthenticatedAgentesRoute
   AuthenticatedAgentesV2Route: typeof AuthenticatedAgentesV2Route
+  AuthenticatedAgentesV3Route: typeof AuthenticatedAgentesV3Route
   AuthenticatedAgts01Route: typeof AuthenticatedAgts01Route
   AuthenticatedAprendizadoRoute: typeof AuthenticatedAprendizadoRoute
   AuthenticatedArgosRoute: typeof AuthenticatedArgosRoute
@@ -769,6 +808,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDiariosRoute: typeof AuthenticatedDiariosRoute
   AuthenticatedExternosRoute: typeof AuthenticatedExternosRoute
+  AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
   AuthenticatedManualRoute: typeof AuthenticatedManualRoute
   AuthenticatedMeuWhatsappRoute: typeof AuthenticatedMeuWhatsappRoute
   AuthenticatedPapaLeadRoute: typeof AuthenticatedPapaLeadRoute
@@ -787,6 +827,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendamentosRoute: AuthenticatedAgendamentosRoute,
   AuthenticatedAgentesRoute: AuthenticatedAgentesRoute,
   AuthenticatedAgentesV2Route: AuthenticatedAgentesV2Route,
+  AuthenticatedAgentesV3Route: AuthenticatedAgentesV3Route,
   AuthenticatedAgts01Route: AuthenticatedAgts01Route,
   AuthenticatedAprendizadoRoute: AuthenticatedAprendizadoRoute,
   AuthenticatedArgosRoute: AuthenticatedArgosRoute,
@@ -799,6 +840,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDiariosRoute: AuthenticatedDiariosRoute,
   AuthenticatedExternosRoute: AuthenticatedExternosRoute,
+  AuthenticatedInicioRoute: AuthenticatedInicioRoute,
   AuthenticatedManualRoute: AuthenticatedManualRoute,
   AuthenticatedMeuWhatsappRoute: AuthenticatedMeuWhatsappRoute,
   AuthenticatedPapaLeadRoute: AuthenticatedPapaLeadRoute,
