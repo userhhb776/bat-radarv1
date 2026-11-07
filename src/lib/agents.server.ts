@@ -791,7 +791,7 @@ export async function mineForAgent(sb: SupabaseClient, a: Agent, o: { niche?: un
   const v3 = (a as any).squad === "v3";
   found = found.filter((x) => x.phone && (v3 || !x.website || /instagram|wa\.me|whatsapp|facebook|linktr/i.test(x.website)));
   const before = found.length;
-  found = found.filter((x) => x.open && x.reviews_count >= (v3 ? Math.max(30, m.min_reviews_v3 ?? 30) : FACTORY.min_reviews) && x.photos >= (v3 ? 8 : FACTORY.min_photos));
+  found = found.filter((x) => x.open && x.reviews_count >= (v3 ? (m.min_reviews ?? 30) : FACTORY.min_reviews) && x.photos >= (v3 ? 8 : FACTORY.min_photos));
   if (v3) found.sort((p, q) => q.reviews_count - p.reviews_count);
   const weak = before - found.length;
   const ids = found.map((x) => x.place_id);
