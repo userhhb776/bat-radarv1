@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Bot, Database, Loader2, RefreshCw, Server } from "lucide-react";
+import { Bot, Database, Loader2, Palette, RefreshCw, Server } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { getDashStyle, getSound, playBoot, setDashStyle, setSound, type DashStyle } from "@/lib/ui-prefs";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +51,9 @@ function SistemaPage() {
   const [rkey, setRkey] = useState("");
   const [akey, setAkey] = useState("");
   const [busy, setBusy] = useState<"" | "r" | "a">("");
+  const [dash, setDash] = useState<DashStyle>("radar");
+  const [snd, setSnd] = useState(false);
+  useEffect(() => { setDash(getDashStyle()); setSnd(getSound()); }, []);
 
   async function swapRender(e: React.FormEvent) {
     e.preventDefault(); setBusy("r");
@@ -71,6 +76,20 @@ function SistemaPage() {
             {q.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Atualizar
           </Button>
         </div>
+        <Box icon={Palette} title="Aparência do painel">
+          <Label>Modelo da tela de Início</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {([["classico", "Clássico", "Limpo, com saudação do horário"], ["radar", "Radar", "Radar girando com o morcego"]] as const).map(([v, t, s]) => (
+              <button key={v} type="button" onClick={() => { setDashStyle(v); setDash(v); }} className={`rounded-lg border p-3 text-left transition ${dash === v ? "border-primary bg-primary/10" : "hover:border-primary/50"}`}>
+                <b>{t}</b><p className="text-xs text-muted-foreground">{s}</p>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t pt-3">
+            <div><p className="font-medium">Som ao toque</p><p className="text-xs text-muted-foreground">Bipe tecnológico ao tocar em opções e ao abrir o Início</p></div>
+            <Switch checked={snd} onCheckedChange={(v) => { setSound(v); setSnd(v); if (v) playBoot(true); }} />
+          </div>
+        </Box>
         {q.isLoading && <p className="text-muted-foreground">Verificando tudo… (o servidor pode levar até 50s para acordar)</p>}
         {q.error && <p className="text-destructive">{(q.error as Error).message}</p>}
         {d && (
