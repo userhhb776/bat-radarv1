@@ -7,6 +7,7 @@ import { useEffect, type ReactNode } from "react";
 import { ArgosBubble } from "@/components/ArgosBubble";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { pingActivity } from "@/lib/push-client";
+import { playTap } from "@/lib/ui-prefs";
 import logo from "@/assets/batradar-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -113,6 +114,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("pointerdown", ping);
     window.addEventListener("keydown", ping);
     return () => { window.removeEventListener("pointerdown", ping); window.removeEventListener("keydown", ping); };
+  }, []);
+  useEffect(() => {
+    const tap = (e: PointerEvent) => { if ((e.target as HTMLElement)?.closest?.("a,button,[role=button],[role=tab],[role=switch],[role=menuitem],input[type=checkbox]")) playTap(); };
+    window.addEventListener("pointerdown", tap);
+    return () => window.removeEventListener("pointerdown", tap);
   }, []);
   return (
     <SidebarProvider>

@@ -6,6 +6,8 @@ import { AppShell } from "@/components/AppShell";
 import { AgentAvatar } from "@/components/AgentAvatar";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/batradar-logo.png";
+import { useEffect, useState } from "react";
+import { getDashStyle, playBoot, type DashStyle } from "@/lib/ui-prefs";
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   head: () => ({ meta: [
@@ -83,6 +85,16 @@ function Panel({ title, icon: I, children, className = "" }: { title: string; ic
 
 function Page() {
   const { data: d } = useQuery({ queryKey: ["dashboard"], queryFn: load, refetchInterval: 60000 });
+  const [style, setStyle] = useState<DashStyle>("radar");
+  const [greet, setGreet] = useState("Visão geral");
+  useEffect(() => {
+    const sync = () => setStyle(getDashStyle());
+    sync(); playBoot();
+    const h = new Date().getHours();
+    setGreet(h < 12 ? "Visão da manhã" : h < 18 ? "Visão da tarde" : "Visão da noite");
+    window.addEventListener("br-prefs", sync);
+    return () => window.removeEventListener("br-prefs", sync);
+  }, []);
   const cards = [
     { t: "Abordados", v: d?.contacted ?? 0, s: `${d?.today ?? 0} msgs nas últimas 24h`, i: Send },
     { t: "Taxa de resposta", v: pct(d?.replied ?? 0, d?.contacted ?? 0), s: `${d?.replied ?? 0} responderam`, i: MessageCircle },
@@ -95,6 +107,7 @@ function Page() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl space-y-4 p-4">
+        {style === "radar" ? (
         <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card p-5 glow-primary">
           <div className="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_right,black,transparent_75%)]" />
           <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
@@ -119,10 +132,20 @@ function Page() {
                   <span className="absolute inset-0 rounded-full bg-primary" />
                 </span>
               ))}
-              <img src={logo} alt="" width={1024} height={1024} className="animate-float absolute inset-[34%] object-contain drop-shadow-[0_0_12px_var(--primary)]" />
+              <div className="absolute left-1/2 top-1/2 grid h-[38%] w-[38%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-primary/40 bg-background/80 shadow-[0_0_24px_-4px_var(--primary)] backdrop-blur">
+                <img src={logo} alt="" width={1024} height={1024} className="animate-float h-[72%] w-[72%] object-contain" />
+              </div>
             </div>
           </div>
         </div>
+        ) : (
+        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Central BatRadar</p>
+          <h1 className="mt-2 font-display text-3xl font-bold">{greet}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{d?.active ?? 0} agentes ligados · {d?.agents.length ?? 0} no esquadrão · atualiza a cada minuto</p>
+          <Radar className="pointer-events-none absolute -right-4 -top-4 h-36 w-36 text-primary/15" />
+        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {cards.map((c, idx) => (
