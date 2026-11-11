@@ -36,3 +36,4 @@
 - Each agent has its own cockpit (/agentes/$id) and its own lead wallet (agent_leads), separate from the owner's leads; approaches queue in agent_leads (status fila) and are sent by the wa-dispatch cron, keeping one dispatcher.
 - Agent client replies go through humanReply (pace wait, debounce on newer inbound, bubbles, optional voice note); manual sends pause the AI per contact via agent_pauses.
 - Conversation prints are read by the AI gateway and only the extracted text is stored in agents.learned; images are never persisted, to save database space.
+- AI cascade lives in src/lib/ai-chat.server.ts: text Groq -> DeepSeek -> Ollama, images Gemini -> Ollama, all via OpenAI-compatible translation; per-provider daily usage is stored as AI_USAGE_* rows in service_config for the Sistema page.

@@ -42,15 +42,30 @@ function Box({ icon: Icon, title, children }: { icon: typeof Database; title: st
   );
 }
 
+function AiKeyForm({ provider, name, onDone }: { provider: "groq" | "deepseek" | "gemini" | "ollama"; name: string; onDone: () => void }) {
+  const fn = useServerFn(saveAiKey);
+  const [k, setK] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function go(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true);
+    try { await fn({ data: { key: k, provider } }); toast.success(`Chave do ${name} trocada`); setK(""); onDone(); }
+    catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
+  }
+  return (
+    <form onSubmit={go} className="flex gap-2 border-t pt-2">
+      <Input type="password" placeholder={`Nova chave do ${name}`} value={k} onChange={(e) => setK(e.target.value)} required />
+      <Button type="submit" size="sm" disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />}Trocar</Button>
+    </form>
+  );
+}
+
 function SistemaPage() {
   const statusFn = useServerFn(getSystemStatus);
   const renderFn = useServerFn(saveRenderServer);
-  const aiFn = useServerFn(saveAiKey);
   const q = useQuery({ queryKey: ["system-status"], queryFn: () => statusFn(), staleTime: 60000, retry: false });
   const [url, setUrl] = useState("");
   const [rkey, setRkey] = useState("");
-  const [akey, setAkey] = useState("");
-  const [busy, setBusy] = useState<"" | "r" | "a">("");
+  const [busy, setBusy] = useState<"" | "r">("");
   const [dash, setDash] = useState<DashStyle>("radar");
   const [snd, setSnd] = useState(false);
   useEffect(() => { setDash(getDashStyle()); setSnd(getSound()); }, []);
@@ -58,11 +73,6 @@ function SistemaPage() {
   async function swapRender(e: React.FormEvent) {
     e.preventDefault(); setBusy("r");
     try { const r = await renderFn({ data: { url, key: rkey } }); toast.success(`Servidor trocado · ${r.connected}/${r.instances} WhatsApps conectados`); setUrl(""); setRkey(""); q.refetch(); }
-    catch (err) { toast.error((err as Error).message); } finally { setBusy(""); }
-  }
-  async function swapAi(e: React.FormEvent) {
-    e.preventDefault(); setBusy("a");
-    try { await aiFn({ data: { key: akey } }); toast.success("Chave da IA trocada"); setAkey(""); q.refetch(); }
     catch (err) { toast.error((err as Error).message); } finally { setBusy(""); }
   }
 
@@ -120,17 +130,25 @@ function SistemaPage() {
               </form>
             </Box>
 
-            <Box icon={Bot} title="IA (Argos · Ollama)">
-              <p className="flex items-center gap-2"><Dot ok={d.ai.ok} />{d.ai.ok ? `Funcionando · ${(d.ai.ms / 1000).toFixed(1)}s` : d.ai.error}</p>
-              <p className="text-muted-foreground">Chave {d.ai.keyMask || "—"}</p>
-              <p>Conversas com o Argos este mês: <b>{d.ai.uses}</b></p>
-              <p className="text-muted-foreground">O Ollama não informa quanto resta do limite; quando ele acabar, o status acima fica vermelho com "Limite atingido" e é só trocar a chave.</p>
-              <form onSubmit={swapAi} className="space-y-2 border-t pt-3">
-                <Label>Trocar chave da IA</Label>
-                <Input type="password" placeholder="Nova chave do Ollama" value={akey} onChange={(e) => setAkey(e.target.value)} required />
-                <Button type="submit" size="sm" disabled={busy === "a"}>{busy === "a" && <Loader2 className="h-4 w-4 animate-spin" />}Testar e trocar</Button>
-              </form>
-            </Box>
+            <div className="lg:col-span-3"><Box icon={Bot} title="Inteligências artificiais">
+              <p className="text-muted-foreground">Ordem automática: Groq → DeepSeek → Ollama. Prints vão para o Gemini. Se uma falhar, a próxima assume sozinha.</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {d.ais.map((a) => (
+                  <div key={a.id} className="space-y-2 rounded-lg border p-3">
+                    <p className="flex items-center gap-2 font-semibold"><Dot ok={a.ok} />{a.name}<span className="text-xs font-normal text-muted-foreground">· {a.role}</span></p>
+                    <p className="text-xs">{a.ok ? `Funcionando · ${(a.ms / 1000).toFixed(1)}s` : a.error}</p>
+                    <p className="text-xs text-muted-foreground">Chave {a.keyMask || "—"} · {a.limits}</p>
+                    {a.balance && <p>Saldo: <b>{a.balance}</b></p>}
+                    {a.rl && (<>
+                      <p className="text-xs">Pedidos restantes hoje: <b>{a.rl.reqLeft}</b> de {a.rl.reqLimit}{a.rl.reqReset ? ` · renova em ${a.rl.reqReset}` : ""}</p>
+                      <Progress value={Math.min(100, (a.rl.reqLeft / Math.max(1, a.rl.reqLimit)) * 100)} />
+                    </>)}
+                    <p className="text-xs text-muted-foreground">Usos hoje pelo painel: {a.callsToday}{a.failsToday ? ` (${a.failsToday} falharam)` : ""}</p>
+                    <AiKeyForm provider={a.id} name={a.name} onDone={() => q.refetch()} />
+                  </div>
+                ))}
+              </div>
+            </Box></div>
           </div>
         )}
       </div>
