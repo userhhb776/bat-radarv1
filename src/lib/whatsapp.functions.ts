@@ -5,15 +5,15 @@ import { requireApprovedAccount as requireSupabaseAuth } from "@/lib/access.midd
 import { prefixFor, ownInstance, isAdmin, canUse } from "@/lib/wa-owner";
 
 async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
+  const { evolutionFetch } = await import("@/lib/evolution-http.server");
   const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   let res: Response;
   try {
-    res = await fetch(base + path, {
+    res = await evolutionFetch(base + path, {
       ...init,
       headers: { "Content-Type": "application/json", apikey: key, ...(init.headers ?? {}) },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    }, timeoutMs);
   } catch (e) {
     if (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) {
       throw new Error("Servidor do WhatsApp está acordando (plano gratuito hiberna). Aguarde ~30s e tente de novo.");
@@ -25,7 +25,7 @@ async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!res.ok) {
     console.error("evolution error", path, res.status, text.slice(0, 500));
-    throw new Error(res.status === 404 ? "Conexão não encontrada no servidor." : `Servidor do WhatsApp respondeu ${res.status}.`);
+    throw new Error(res.status === 404 ? "Conexão não encontrada no servidor." : res.status === 429 ? "Servidor do WhatsApp está limitando consultas. Aguarde um pouco antes de atualizar novamente." : `Servidor do WhatsApp respondeu ${res.status}.`);
   }
   return body as Record<string, unknown>;
 }
@@ -39,7 +39,7 @@ export const waList = createServerFn({ method: "POST" })
     const p = prefixFor(context.userId) + "-";
     const admin = await isAdmin(context);
     const mine = (n: string) => canUse(context.userId, admin, n);
-    const list = (await evo("/instance/fetchInstances", {}, 25000)) as unknown as Array<Record<string, unknown>>;
+    const list = (await evo("/instance/fetchInstances")) as unknown as Array<Record<string, unknown>>;
     const { data: st } = await context.supabase.from("user_settings").select("wa_labels").maybeSingle();
     const labels = (st?.wa_labels ?? {}) as Record<string, string>;
     // garante o aviso de respostas em todas as conexões (interrompe o funil quando o cliente responde)
@@ -87,7 +87,7 @@ export const waState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name: string }) => d)
   .handler(async ({ data, context }) => {
-    const r = await evo(`/instance/connectionState/${await ownInstance(context, data.name)}`, {}, 20000);
+    const r = await evo(`/instance/connectionState/${await ownInstance(context, data.name)}`);
     const inst = (r["instance"] ?? {}) as Record<string, unknown>;
     return { state: String(inst["state"] ?? "close") };
   });

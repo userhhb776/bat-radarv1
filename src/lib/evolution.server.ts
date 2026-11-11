@@ -1,4 +1,5 @@
 import { normalizeBR } from "@/lib/phone";
+import { evolutionFetch, pingEvolution } from "@/lib/evolution-http.server";
 /** gapMs: se informado, espera esse tempo (sorteado pela função) entre um balão e o próximo. */
 export async function evoSend(instance: string, phone: string, texts: string[], gapMs?: () => number) {
   const { base, key } = await (await import("@/lib/service-config.server")).getEvo();
@@ -6,7 +7,7 @@ export async function evoSend(instance: string, phone: string, texts: string[], 
   const number = normalizeBR(phone);
   if (!number) throw new Error("Telefone inválido.");
   // acorda o servidor gratuito antes de enviar
-  await fetch(`${base}/`, { signal: AbortSignal.timeout(60000) }).catch(() => null);
+  await pingEvolution().catch(() => false);
   const list = texts.map((t) => t.trim()).filter(Boolean);
   for (const [i, text] of list.entries()) {
     if (i > 0 && gapMs) await new Promise((r) => setTimeout(r, gapMs()));
@@ -47,7 +48,7 @@ export async function evoGet(path: string, timeoutMs = 60000): Promise<unknown> 
   if (!base || !key) throw new Error("Servidor do WhatsApp não configurado.");
   let res: Response;
   try {
-    res = await fetch(base + path, { headers: { apikey: key }, signal: AbortSignal.timeout(timeoutMs) });
+    res = await evolutionFetch(base + path, { headers: { apikey: key } }, timeoutMs);
   } catch {
     throw new Error("Servidor do WhatsApp está acordando. Aguarde ~30s e tente de novo.");
   }
