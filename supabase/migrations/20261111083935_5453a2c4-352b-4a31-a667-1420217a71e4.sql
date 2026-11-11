@@ -1,0 +1,1 @@
+SELECT cron.schedule('psi-ativar-0645', '45 11 11 11 *', $$UPDATE public.agents SET active = true WHERE id = '23bc068d-c4d2-4ceb-8796-ae5f421b54e4'; SELECT cron.unschedule('psi-ativar-0645');$$);
