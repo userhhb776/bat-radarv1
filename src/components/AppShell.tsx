@@ -24,7 +24,9 @@ const groups = [
     { title: "Buscar", url: "/buscar", icon: Search },
     { title: "Leads externos", url: "/externos", icon: Inbox },
     { title: "Scripts", url: "/scripts", icon: ScrollText },
-    { title: "Spy de anúncios", url: "/spy", icon: Crosshair },
+  ] },
+  { label: "Bat Spy", items: [
+    { title: "Bat Spy", url: "/spy", icon: Crosshair },
   ] },
   { label: "Automação", items: [
     { title: "Bloco de leads", url: "/blocos", icon: Layers },
