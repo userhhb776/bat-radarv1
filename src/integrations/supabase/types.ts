@@ -44,6 +44,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_spy_saved: {
+        Row: {
+          ad_id: string
+          body: string | null
+          country: string | null
+          created_at: string
+          cta: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          keyword: string | null
+          link_url: string | null
+          mode: string
+          notes: string | null
+          page_id: string | null
+          page_name: string | null
+          platforms: string[] | null
+          raw: Json | null
+          start_date: string | null
+          title: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          ad_id: string
+          body?: string | null
+          country?: string | null
+          created_at?: string
+          cta?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          keyword?: string | null
+          link_url?: string | null
+          mode?: string
+          notes?: string | null
+          page_id?: string | null
+          page_name?: string | null
+          platforms?: string[] | null
+          raw?: Json | null
+          start_date?: string | null
+          title?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Update: {
+          ad_id?: string
+          body?: string | null
+          country?: string | null
+          created_at?: string
+          cta?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          keyword?: string | null
+          link_url?: string | null
+          mode?: string
+          notes?: string | null
+          page_id?: string | null
+          page_name?: string | null
+          platforms?: string[] | null
+          raw?: Json | null
+          start_date?: string | null
+          title?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       agent_audios: {
         Row: {
           agent_id: string

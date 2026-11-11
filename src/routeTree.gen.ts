@@ -38,6 +38,7 @@ import { Route as AuthenticatedPapaLeadMensagensRouteImport } from './routes/_au
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
 import { Route as AuthenticatedScriptsRouteImport } from './routes/_authenticated/scripts'
 import { Route as AuthenticatedSistemaRouteImport } from './routes/_authenticated/sistema'
+import { Route as AuthenticatedSpyRouteImport } from './routes/_authenticated/spy'
 import { Route as AuthenticatedTesteRouteImport } from './routes/_authenticated/teste'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedAgentesIdRouteImport } from './routes/_authenticated/agentes_.$id'
@@ -198,6 +199,11 @@ const AuthenticatedSistemaRoute = AuthenticatedSistemaRouteImport.update({
   path: '/sistema',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSpyRoute = AuthenticatedSpyRouteImport.update({
+  id: '/spy',
+  path: '/spy',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTesteRoute = AuthenticatedTesteRouteImport.update({
   id: '/teste',
   path: '/teste',
@@ -282,6 +288,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
   '/sistema': typeof AuthenticatedSistemaRoute
+  '/spy': typeof AuthenticatedSpyRoute
   '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/agentes/$id': typeof AuthenticatedAgentesIdRoute
@@ -322,6 +329,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/scripts': typeof AuthenticatedScriptsRoute
   '/sistema': typeof AuthenticatedSistemaRoute
+  '/spy': typeof AuthenticatedSpyRoute
   '/teste': typeof AuthenticatedTesteRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/agentes/$id': typeof AuthenticatedAgentesIdRoute
@@ -364,6 +372,7 @@ export interface FileRoutesById {
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/scripts': typeof AuthenticatedScriptsRoute
   '/_authenticated/sistema': typeof AuthenticatedSistemaRoute
+  '/_authenticated/spy': typeof AuthenticatedSpyRoute
   '/_authenticated/teste': typeof AuthenticatedTesteRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/agentes_/$id': typeof AuthenticatedAgentesIdRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/scripts'
     | '/sistema'
+    | '/spy'
     | '/teste'
     | '/whatsapp'
     | '/agentes/$id'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/scripts'
     | '/sistema'
+    | '/spy'
     | '/teste'
     | '/whatsapp'
     | '/agentes/$id'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pipeline'
     | '/_authenticated/scripts'
     | '/_authenticated/sistema'
+    | '/_authenticated/spy'
     | '/_authenticated/teste'
     | '/_authenticated/whatsapp'
     | '/_authenticated/agentes_/$id'
@@ -717,6 +729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSistemaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/spy': {
+      id: '/_authenticated/spy'
+      path: '/spy'
+      fullPath: '/spy'
+      preLoaderRoute: typeof AuthenticatedSpyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/teste': {
       id: '/_authenticated/teste'
       path: '/teste'
@@ -817,6 +836,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedScriptsRoute: typeof AuthenticatedScriptsRoute
   AuthenticatedSistemaRoute: typeof AuthenticatedSistemaRoute
+  AuthenticatedSpyRoute: typeof AuthenticatedSpyRoute
   AuthenticatedTesteRoute: typeof AuthenticatedTesteRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedAgentesIdRoute: typeof AuthenticatedAgentesIdRoute
@@ -849,6 +869,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedScriptsRoute: AuthenticatedScriptsRoute,
   AuthenticatedSistemaRoute: AuthenticatedSistemaRoute,
+  AuthenticatedSpyRoute: AuthenticatedSpyRoute,
   AuthenticatedTesteRoute: AuthenticatedTesteRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedAgentesIdRoute: AuthenticatedAgentesIdRoute,

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { getSystemStatus, saveAiKey, saveRenderServer } from "@/lib/status.functions";
+import { getApifyStatus } from "@/lib/adspy.functions";
 
 export const Route = createFileRoute("/_authenticated/sistema")({
   head: () => ({
@@ -130,6 +131,8 @@ function SistemaPage() {
               </form>
             </Box>
 
+            <div className="lg:col-span-3"><ApifyBox /></div>
+
             <div className="lg:col-span-3"><Box icon={Bot} title="Inteligências artificiais">
               <p className="text-muted-foreground">Ordem automática: Groq → DeepSeek → Ollama. Prints vão para o Gemini. Se uma falhar, a próxima assume sozinha.</p>
               <div className="grid gap-3 md:grid-cols-2">
@@ -153,5 +156,22 @@ function SistemaPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+function ApifyBox() {
+  const fn = useServerFn(getApifyStatus);
+  const q = useQuery({ queryKey: ["apify-status"], queryFn: () => fn(), staleTime: 60000, retry: false });
+  const d = q.data;
+  return (
+    <Box icon={Server} title="Apify · Spy de anúncios">
+      {!d ? <p className="text-muted-foreground">Consultando…</p> : !d.ok ? <p className="flex items-center gap-2"><Dot ok={false} />{d.error}</p> : (<>
+        <p className="flex items-center gap-2"><Dot ok={d.left > 0.3} />Conta {d.user} · plano {d.plan}</p>
+        <p>Saldo do mês: <b>US$ {d.left.toFixed(2)}</b> de US$ {d.max.toFixed(2)} (usado US$ {d.used.toFixed(2)})</p>
+        <Progress value={Math.min(100, (d.used / Math.max(0.01, d.max)) * 100)} />
+        <p className="text-xs text-muted-foreground">{d.resetAt ? `Renova em ${new Date(d.resetAt).toLocaleDateString("pt-BR")}. ` : ""}Cerca de US$ 0,005 por anúncio minerado. {d.left < 0.5 ? "Hora de trocar a chave ou pagar." : ""}</p>
+      </>)}
+      <Button size="sm" variant="outline" onClick={() => q.refetch()}><RefreshCw className="h-4 w-4" />Atualizar</Button>
+    </Box>
   );
 }
