@@ -76,7 +76,7 @@ function SpyPage() {
 
   async function run(e?: React.FormEvent, term?: string) {
     e?.preventDefault();
-    const query = (term ?? q).trim(); if (query.length < 2) return toast.error("Digite ao menos 2 letras");
+    const query = (term ?? q).trim(); if (query.length < 2) { toast.error("Digite ao menos 2 letras"); return; }
     setQ(query); setBusy(true); setTab("busca");
     try {
       const r = await searchFn({ data: { q: query, country, active, media, limit } });
@@ -244,7 +244,7 @@ function SavedTools({ s, onChange, upd }: { s: any; onChange: () => void; upd: a
   );
 }
 
-function AdCard({ a, mode, saved, count, onSave, onLead, onPage, extra }: { a: SpyAd; mode: Mode; saved?: boolean; count?: number; onSave?: () => void; onLead?: () => void; onPage?: () => void; extra?: React.ReactNode }) {
+function AdCard({ a, mode, saved, count, onSave, onLead, onPage, extra }: { a: SpyAd; mode: Mode; saved?: boolean; count?: number | undefined; onSave?: () => void; onLead?: () => void; onPage?: () => void; extra?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const d = a.days_running ?? 0;
   const hot = d >= 30 && a.is_active !== false;
