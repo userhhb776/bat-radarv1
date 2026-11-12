@@ -38,4 +38,5 @@
 - Conversation prints are read by the AI gateway and only the extracted text is stored in agents.learned; images are never persisted, to save database space.
 - AI cascade lives in src/lib/ai-chat.server.ts: text Groq -> DeepSeek -> Ollama, images Gemini -> Ollama, all via OpenAI-compatible translation; per-provider daily usage is stored as AI_USAGE_* rows in service_config for the Sistema page.
 - Evolution read requests share bounded retries honoring Retry-After; writes are never automatically replayed by the transport to avoid duplicate messages.
+- Evolution text sends retry only on HTTP 429 (Render proxy rejected it, nothing delivered) and leads failing with 429 return to the queue instead of error.
 - Evolution keep-alive uses an independent external GitHub Actions schedule plus an unconditional dispatcher ping; Actions timing is best-effort and must be enabled in the connected repository.

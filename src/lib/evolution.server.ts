@@ -12,12 +12,19 @@ export async function evoSend(instance: string, phone: string, texts: string[], 
   for (const [i, text] of list.entries()) {
     if (i > 0 && gapMs) await new Promise((r) => setTimeout(r, gapMs()));
     const delay = Math.min(8000, 1200 + text.length * 35 + Math.floor(Math.random() * 1500));
-    const res = await fetch(`${base}/message/sendText/${encodeURIComponent(instance)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: key },
-      body: JSON.stringify({ number, text, delay }),
-      signal: AbortSignal.timeout(45000),
-    });
+    let res!: Response;
+    // 429 vem do proxy do Render (servidor acordando): a mensagem não chegou ao WhatsApp, então é seguro tentar de novo.
+    for (let t = 0; t < 4; t++) {
+      res = await fetch(`${base}/message/sendText/${encodeURIComponent(instance)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: key },
+        body: JSON.stringify({ number, text, delay }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (res.status !== 429 || t === 3) break;
+      await res.body?.cancel();
+      await new Promise((r) => setTimeout(r, 15000));
+    }
     if (!res.ok) throw new Error(`Servidor do WhatsApp respondeu ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
 }

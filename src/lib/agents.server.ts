@@ -948,7 +948,7 @@ export async function processAgentQueue(sb: SupabaseClient) {
       sent++;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      await sb.from("agent_leads").update({ status: invalidPhone(msg, l.phone) ? "revisao" : "erro" }).eq("id", l.id);
+      await sb.from("agent_leads").update({ status: invalidPhone(msg, l.phone) ? "revisao" : / 429:/.test(msg) ? "fila" : "erro" }).eq("id", l.id);
       await logEvent(sb, ag, "erro", `Falhou com ${l.name}: ${e instanceof Error ? e.message : "erro"}`);
     }
   }
