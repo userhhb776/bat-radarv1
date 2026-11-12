@@ -160,14 +160,21 @@ export const Route = createFileRoute("/api/public/hooks/wa-dispatch")({
             report.push(`pl erro ${row.id}`);
           }
         }
+        // Agentes: empresas presas em "enviando" (servidor caiu no meio) voltam para a fila
+        await supabaseAdmin.from("agent_leads").update({ status: "fila" }).eq("status", "enviando").lt("updated_at", stale);
+        try {
+          const { processAgentQueue } = await import("@/lib/agents.server");
+          report.push(`agentes ${await processAgentQueue(supabaseAdmin as any)}`);
+        } catch (e) { console.error("agent queue", e); }
         // Despertador: se o próximo envio cai antes da rodada fixa de 18 min, agenda uma rodada extra no minuto exato
         try {
           const nowIso = new Date().toISOString();
-          const [{ data: nextWa }, { data: nextPl }] = await Promise.all([
+          const [{ data: nextWa }, { data: nextPl }, { data: nextAg }] = await Promise.all([
             supabaseAdmin.from("wa_scheduled").select("send_at").eq("status", "pendente").gt("send_at", nowIso).order("send_at").limit(1),
             pl.from("pl_queue").select("send_at").eq("status", "pendente").gt("send_at", nowIso).order("send_at").limit(1),
+            supabaseAdmin.from("agent_leads").select("send_at").eq("status", "fila").gt("send_at", nowIso).order("send_at").limit(1),
           ]);
-          const cands = [nextWa?.[0]?.send_at, nextPl?.[0]?.send_at].filter(Boolean).map((s) => new Date(s as string).getTime());
+          const cands = [nextWa?.[0]?.send_at, nextPl?.[0]?.send_at, nextAg?.[0]?.send_at].filter(Boolean).map((s) => new Date(s as string).getTime());
           if (plRetryAt) cands.push(plRetryAt);
           if (waRetryAt) cands.push(waRetryAt);
           if (activeDue.length > due.length) cands.push(Date.now() + 3 * 60000);
@@ -181,10 +188,6 @@ export const Route = createFileRoute("/api/public/hooks/wa-dispatch")({
             }
           }
         } catch { /* a rodada fixa de 18 min continua valendo */ }
-        try {
-          const { processAgentQueue } = await import("@/lib/agents.server");
-          report.push(`agentes ${await processAgentQueue(supabaseAdmin as any)}`);
-        } catch (e) { console.error("agent queue", e); }
         return Response.json({ ok: true, report });
       },
     },
