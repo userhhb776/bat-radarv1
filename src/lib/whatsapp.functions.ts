@@ -33,6 +33,50 @@ async function evo(path: string, init: RequestInit = {}, timeoutMs = 60000) {
 
 export type WaInstance = { name: string; label: string; status: string; number: string | null; profile: string | null };
 
+export const waContacts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { name: string }) => d)
+  .handler(async ({ data, context }) => {
+    const n = await ownInstance(context, data.name);
+    const { parseContacts } = await import("@/lib/wa-contacts");
+    return parseContacts(await evo(`/chat/findContacts/${n}`, { method: "POST", body: JSON.stringify({ where: {} }) }));
+  });
+
+export const waContactPhoto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { name: string; phone: string }) => d)
+  .handler(async ({ data, context }) => {
+    const n = await ownInstance(context, data.name);
+    const number = data.phone.replace(/\D/g, "");
+    if (number.length < 8 || number.length > 15) throw new Error("Digite o número completo com código do país e DDD.");
+    const result = await evo(`/chat/fetchProfilePictureUrl/${n}`, { method: "POST", body: JSON.stringify({ number }) });
+    const raw = result["profilePictureUrl"];
+    if (typeof raw !== "string" || !raw) return { image: null, number };
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || !["whatsapp.net", "whatsapp.com", "fbcdn.net"].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))) throw new Error("Endereço de foto inválido.");
+    const response = await fetch(url, { signal: AbortSignal.timeout(20000), redirect: "error" });
+    if (!response.ok) throw new Error("Não foi possível baixar a foto. Consulte novamente.");
+    const type = response.headers.get("content-type")?.split(";")[0] ?? "";
+    if (!["image/jpeg", "image/png", "image/webp"].includes(type)) throw new Error("Formato de foto não suportado.");
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("Foto indisponível.");
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 5 * 1024 * 1024) { await reader.cancel(); throw new Error("Foto muito grande."); }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return { image: `data:${type};base64,${btoa(binary)}`, number };
+  });
+
 export const waList = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<WaInstance[]> => {

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WaContactPhoto } from "@/components/WaContactPhoto";
 import { waCreate, waList, waQr, waRemove, waSend, waState, type WaInstance } from "@/lib/whatsapp.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -124,6 +125,7 @@ function WhatsappPage() {
                 <p className="text-xs text-muted-foreground">{i.number ? `+${i.number} · ` : ""}{statusLabel[i.status] ?? i.status}</p>
               </div>
               {i.status !== "open" && <Button size="sm" variant="outline" onClick={() => showQr(i.name)}><QrCode className="mr-1 h-4 w-4" /> QR Code</Button>}
+              <WaContactPhoto instance={i} label={nameOf(i)} />
               <Button size="sm" variant="ghost" aria-label="Remover" onClick={() => remove(i)}><Trash2 className="h-4 w-4" /></Button>
             </div>
           ))}
